@@ -35,16 +35,16 @@ vendor WLED code into this repo.
   `-p <port>`, `-c` clean.
 - Build sequence it implements: `npm ci` (once) → `npm run build` (generates
   `wled00/html_*.h` / `js_*.h`, required before any `pio run`) → `pio run -e <env>`.
-- The script self-heals PATH for non-interactive shells: Node via fnm at
-  `~/.local/share/fnm/node-versions/*/installation/bin`, PlatformIO at
-  `~/.platformio/penv/bin`.
+- The script self-heals PATH for PlatformIO in non-interactive shells
+  (`~/.platformio/penv/bin`). Node/npm must be on PATH already; how Node is
+  installed is the user's choice and the tooling must not assume a manager.
 - A first compile of a new env can fail with `compilation terminated` and no
   error message (OOM during parallel compile on this VM); retry once before
   investigating.
 
 ## Toolchain
 
-- Node ≥ 20 (fnm), Python 3.12, PlatformIO 6.1.19 (versions pinned by
+- Node ≥ 20, Python 3.12, PlatformIO 6.1.19 (versions pinned by
   `WLED/.nvmrc` and `WLED/requirements.txt`).
 - Espressif32 and espressif8266 platforms are pre-cached in `~/.platformio`.
 - Provisioning is managed by an external Ansible playbook (infra agent).

@@ -51,13 +51,8 @@ fi
 
 cd "$WLED_DIR"
 
-# Make sure node/npm and pio are resolvable in non-interactive shells.
-if ! command -v npm >/dev/null 2>&1; then
-  for d in "$HOME"/.local/share/fnm/node-versions/*/installation/bin \
-           "$HOME/Library/Application Support/fnm"/node-versions/*/installation/bin; do
-    [[ -x "$d/npm" ]] && PATH="$d:$PATH" && break
-  done
-fi
+# Make sure pio is resolvable in non-interactive shells. Node/npm must already
+# be on PATH — how they are installed is up to the user.
 if ! command -v pio >/dev/null 2>&1 && [[ -x "$HOME/.platformio/penv/bin/pio" ]]; then
   PATH="$HOME/.platformio/penv/bin:$PATH"
 fi
