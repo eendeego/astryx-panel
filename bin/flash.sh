@@ -21,6 +21,7 @@
 
 set -euo pipefail
 
+ORIG_ARGS=$*
 REPO_DIR=$(cd "$(dirname "$0")/.." && pwd)
 WLED_DIR=$REPO_DIR/WLED
 CACHE_DIR=$REPO_DIR/.cache/boot
@@ -125,7 +126,7 @@ if [[ -z "$PORT" ]]; then
   found=()
   for c in "${candidates[@]}"; do [[ -e "$c" ]] && found+=("$c"); done
   case ${#found[@]} in
-    0) die "no serial port found. Connect the board in ROM bootloader mode (hold BOOT while pressing RESET), or pass -p <port>" ;;
+    0) die "no serial port found. Put the board in ROM bootloader mode (1. hold BOOT, 2. tap RESET, 3. release BOOT) and re-run, or pass -p <port>" ;;
     1) PORT=${found[0]} ;;
     *) die "several serial ports found (${found[*]}); choose one with -p <port>" ;;
   esac
@@ -146,6 +147,14 @@ if [[ $DRY_RUN -eq 1 ]]; then
   printf '%q ' "${CMD[@]}"; echo
   exit 0
 fi
-"${CMD[@]}"
+if ! "${CMD[@]}"; then
+  echo >&2
+  echo "Flashing failed. Put the board in ROM bootloader mode:" >&2
+  echo "  1. Hold BOOT" >&2
+  echo "  2. Tap RESET" >&2
+  echo "  3. Release BOOT" >&2
+  echo "then re-run: $0 $ORIG_ARGS" >&2
+  exit 1
+fi
 echo
 echo "Done. If the board does not restart on its own, press its RESET button to boot WLED."

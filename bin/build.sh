@@ -75,7 +75,17 @@ if [[ $UPLOAD -eq 1 ]]; then
 elif [[ -n "$PORT" ]]; then
   echo "WARNING: --port given without --upload; ignoring it" >&2
 fi
-pio "${PIO_ARGS[@]}"
+if ! pio "${PIO_ARGS[@]}"; then
+  if [[ $UPLOAD -eq 1 ]]; then
+    echo >&2
+    echo "Upload failed. If the build compiled but esptool could not connect, put the board in ROM bootloader mode:" >&2
+    echo "  1. Hold BOOT" >&2
+    echo "  2. Tap RESET" >&2
+    echo "  3. Release BOOT" >&2
+    echo "then re-run: $0 -u -e $ENV_NAME${PORT:+ -p $PORT}" >&2
+  fi
+  exit 1
+fi
 
 echo
 echo "Done. Firmware: WLED/.pio/build/$ENV_NAME/firmware.bin"

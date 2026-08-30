@@ -75,8 +75,9 @@ bin/flash.sh -n ...                              # keep existing settings (no ch
 bin/flash.sh --dry-run ...                       # show the esptool command only
 ```
 
-Put the board in ROM bootloader mode first (hold BOOT while pressing RESET).
-The port is auto-detected when exactly one candidate exists; otherwise pass
+If flashing (or `bin/build.sh -u`) fails to connect, put the board in ROM
+bootloader mode — **1.** hold BOOT, **2.** tap RESET, **3.** release BOOT — and
+re-run the command. The port is auto-detected when exactly one candidate exists; otherwise pass
 `-p <port>`. With `-f` the boot files WLED's web installer uses are downloaded
 once into `.cache/boot/` (git-ignored); `-d` forces that source for local
 builds too. `esptool` comes from PATH or from PlatformIO's bundled copy.
