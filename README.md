@@ -26,6 +26,7 @@ astryx-panel/                  # this repo
 │   └── out/                   # intermediates (git-ignored)
 ├── WLED/                      # upstream WLED checkout (git-ignored, separate repo)
 │   └── platformio_override.ini -> ../config/platformio_override.ini
+├── docs/SETUP.md              # the same settings as WLED UI fields, for setting a board up by hand
 ├── README.md
 └── CLAUDE.md                  # context for Claude Code sessions
 ```
@@ -116,6 +117,11 @@ bin/provision.sh -n <board-ip>       # merge only, reboot later yourself
 The default merge mode is safe on an already-configured board: WLED merges
 the file field by field. After the reboot the script reads `/json/cfg` back
 and reports any difference from the file.
+
+Some of the panel's settings are in neither `cfg.json` nor a build flag — gamma,
+transition time, the UI preferences, and the gap file. `docs/SETUP.md` lists
+every setting as the field it is in WLED's own pages, marks which of them
+provisioning restores, and is the way back if a board has to be set up by hand.
 
 ## Presets and animated GIFs
 
