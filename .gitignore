@@ -4,3 +4,7 @@ WLED/
 
 # Boot files fetched on demand by bin/flash.sh
 .cache/
+
+# Intermediates from the artwork generators (gfx/generate-all.sh); the
+# finished GIFs are versioned under config/gifs/
+gfx/out/

@@ -61,9 +61,13 @@ something else. Do not vendor WLED code into this repo.
   verifies by reading files back (`-g` presets only, `-v` verify only).
   WLED limits: GIF ≤ panel size (no downscaling), name ≤ 32 chars, one GIF
   playing at a time. `gen-presets.sh` overwrites presets.json.
-- `gfx/` holds scripts that *generate* GIFs and other panel images, writing
-  into `config/gifs/`; one script per animation/image family. Board tooling
-  belongs in `bin/`, not here. After generating, re-run `bin/gen-presets.sh`.
+- `gfx/` holds the scripts that *generate* GIFs and other panel images from
+  the SVG sources in `gfx/raw/`, writing finished GIFs into `config/gifs/` and
+  intermediates into git-ignored `gfx/out/`. `gfx/generate-all.sh` (a wrapper
+  around `gfx/Makefile`) rebuilds what is stale; after generating, re-run
+  `bin/gen-presets.sh`. It needs `rsvg-convert`, ImageMagick and Pillow, which
+  the firmware build does not — see `gfx/CLAUDE.md` for how the generators
+  work. Board tooling belongs in `bin/`, not here.
 
 ## Toolchain
 

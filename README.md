@@ -21,6 +21,9 @@ astryx-panel/                  # this repo
 ├── config/gifs/               # animated GIFs to play on the panel (drop files here)
 ├── config/presets.json        # generated: one Image preset per GIF + playlist
 ├── gfx/                       # scripts that render the GIFs/images in config/gifs/
+│   ├── Makefile               # what to rebuild, and from what
+│   ├── raw/                   # versioned SVG sources
+│   └── out/                   # intermediates (git-ignored)
 ├── WLED/                      # upstream WLED checkout (git-ignored, separate repo)
 │   └── platformio_override.ini -> ../config/platformio_override.ini
 ├── README.md
@@ -137,10 +140,101 @@ plays at a time — hence one full-panel Image preset per GIF plus an
 whenever GIFs are added or removed.
 
 GIFs and other panel images that are generated rather than downloaded come
-from scripts in `gfx/` (one script per animation or image family), which write
-their output into `config/gifs/`. Re-run `bin/gen-presets.sh` afterwards so the
-presets match. Keep `gfx/` for content generation only — board tooling stays in
-`bin/`.
+from the scripts in `gfx/`, described below, which write their output into
+`config/gifs/`. Re-run `bin/gen-presets.sh` afterwards so the presets match.
+
+## Panel artwork
+
+`gfx/` generates the artwork the panel shows: marquee animations of the Astryx
+wordmark, and the gap file for the panel that sits behind the logo-shaped mask.
+
+- `gfx/raw/` — versioned SVG sources
+- `gfx/` — the generators
+- `gfx/out/` — intermediates: the rasterized wordmark, the gap file (not versioned)
+- `config/gifs/` — the finished GIFs, versioned, and what the board is given
+
+Requirements, none of which the firmware build needs:
+
+- [librsvg](https://wiki.gnome.org/Projects/LibRsvg) for `rsvg-convert` — `brew install librsvg`
+- [ImageMagick](https://imagemagick.org) for `magick` (IM6 `convert` also works) — `brew install imagemagick`
+- Python 3 with [Pillow](https://python-pillow.org) — `pip install pillow`
+
+Every script takes `--help`, which lists its options and their defaults.
+
+### Regenerating everything
+
+```sh
+gfx/generate-all.sh
+```
+
+Runs the invocations below through `gfx/Makefile`, from `gfx/` whatever the
+current directory is. Only stale targets are rebuilt — a GIF is remade when
+`gfx/out/astryx-word.png` or `gfx/make-marquee.sh` changed, and not otherwise,
+which is worth caring about because each frame of a marquee is a separate
+ImageMagick invocation.
+
+`-f` rebuilds everything regardless, `-n` prints what would run without running
+it, `-j N` builds N targets at a time, and `gfx/generate-all.sh clean` deletes
+`gfx/out/` and the GIFs the Makefile writes — GIFs dropped into `config/gifs/`
+by hand are left alone. Individual targets can be named too, e.g.
+`gfx/generate-all.sh out/astryx-gap.json` (target paths are relative to `gfx/`).
+
+Regenerating changes what is on the panel only once the presets are rebuilt and
+the board is given the new files:
+
+```sh
+gfx/generate-all.sh && bin/gen-presets.sh && bin/provision.sh <board-ip>
+```
+
+### Tested (good) invocations
+
+The steps `generate-all.sh` automates, if you want to run one by hand.
+`gfx/out/` is not versioned, so create it first if it is missing:
+
+```sh
+mkdir -p gfx/out
+```
+
+#### Marquee
+
+Rasterize the wordmark into a PNG file:
+
+```sh
+rsvg-convert -o gfx/out/astryx-word.png -w 64 -a gfx/raw/astryx-word.svg
+```
+
+Flat marquee:
+
+```sh
+gfx/make-marquee.sh gfx/out/astryx-word.png config/gifs/astryx-word.gif
+```
+
+Cylindrical marquee:
+
+```sh
+gfx/make-marquee.sh -c gfx/out/astryx-word.png config/gifs/astryx-word-c.gif
+```
+
+#### Gap file
+
+```sh
+python3 gfx/make-gap.py -t 255 -s 64 -b white
+```
+
+Reads `gfx/raw/astryx.svg` and writes `gfx/out/astryx-gap.json`, the defaults
+for both positional arguments. WLED takes it through its own upload in the 2D
+settings page; `bin/provision.sh` does not push it.
+
+**Firmware caveat.** WLED documents `1` as a regular pixel and `0` as one that
+is never painted. WLED 16.0.1 acts on the inverse: the entries written as `1`
+are the ones it leaves dark, and the `0`s are the ones it paints. Presumed to
+be a bug.
+
+The invocation above is therefore written for the firmware rather than for the
+documentation — it puts `0` on the logo shape and `1` on the ground around it,
+which on 16.0.1 is what lights the shape and blanks the masked area. Do not
+"correct" it to match the docs without re-testing on the panel. If a later
+release fixes the bug, add `-n/--negative` to flip the polarity back.
 
 ## Known quirks
 
