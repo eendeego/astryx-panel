@@ -46,13 +46,7 @@ else
   PKG_INSTALL="<your package manager> install"
 fi
 
-# --- PATH self-heal (same locations build.sh uses; harmless if absent) -------
-if ! command -v node >/dev/null 2>&1; then
-  for d in "$HOME"/.local/share/fnm/node-versions/*/installation/bin \
-           "$HOME/Library/Application Support/fnm"/node-versions/*/installation/bin; do
-    if [ -x "$d/node" ]; then PATH="$d:$PATH"; break; fi
-  done
-fi
+# --- PATH self-heal for PlatformIO (same location build.sh uses) --------------
 if ! command -v pio >/dev/null 2>&1 && [ -x "$HOME/.platformio/penv/bin/pio" ]; then
   PATH="$HOME/.platformio/penv/bin:$PATH"
 fi
@@ -73,16 +67,10 @@ if [ -f "$WLED_DIR/.nvmrc" ]; then
 fi
 REQUIRED_NODE_MAJOR=${REQUIRED_NODE_VERSION%%.*}
 
-# How to get the required Node: prefer whichever version manager is present.
-if command -v fnm >/dev/null 2>&1; then
-  NODE_FIX="fnm install $REQUIRED_NODE_VERSION && fnm default $REQUIRED_NODE_VERSION"
-elif [ -s "${NVM_DIR:-$HOME/.nvm}/nvm.sh" ]; then
-  NODE_FIX="nvm install $REQUIRED_NODE_VERSION && nvm alias default $REQUIRED_NODE_VERSION"
-else
-  NODE_FIX="curl -fsSL https://fnm.vercel.app/install | bash
-# then open a new shell and run:
-fnm install $REQUIRED_NODE_VERSION && fnm default $REQUIRED_NODE_VERSION"
-fi
+# Node installation method is the user's choice (nodejs.org, distro package,
+# any version manager); we only state the version and that it must be on PATH.
+NODE_FIX="install Node.js $REQUIRED_NODE_VERSION (pinned by WLED/.nvmrc) using your preferred method
+and make sure 'node' and 'npm' are on PATH — see https://nodejs.org/en/download"
 
 if command -v node >/dev/null 2>&1; then
   NODE_VERSION=$(node --version | sed 's/^v//')
