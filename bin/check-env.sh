@@ -134,20 +134,6 @@ else
   fail "git not found (PlatformIO needs it to fetch libraries from GitHub)" "$PKG_INSTALL git"
 fi
 
-# --- Repo bootstrap state (fixable by bin/build.sh, hence warnings) -----------
-if [ -d "$WLED_DIR/node_modules" ]; then
-  pass "Node dependencies installed (node_modules)"
-else
-  warn "node_modules missing (bin/build.sh also does this on first build)" \
-       "(cd \"$WLED_DIR\" && npm ci)"
-fi
-if ls "$WLED_DIR"/wled00/html_*.h >/dev/null 2>&1; then
-  pass "Web UI headers generated (wled00/html_*.h)"
-else
-  warn "Web UI headers not generated yet (bin/build.sh also does this on first build)" \
-       "(cd \"$WLED_DIR\" && npm run build)"
-fi
-
 # --- Serial access for flashing (Linux only; macOS needs no group) ------------
 if [ "$(uname)" = "Linux" ]; then
   if id -nG 2>/dev/null | tr ' ' '\n' | grep -qx dialout; then
@@ -165,7 +151,7 @@ if [ "$FAILURES" -gt 0 ]; then
   echo "Run the 'fix:' commands above, then re-run $0."
   exit 1
 elif [ "$WARNINGS" -gt 0 ]; then
-  echo "Result: OK with $WARNINGS warning(s) — bin/build.sh should handle the rest."
+  echo "Result: OK with $WARNINGS warning(s)."
 else
   echo "Result: all checks passed."
 fi
