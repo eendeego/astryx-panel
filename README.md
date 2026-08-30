@@ -304,6 +304,27 @@ distance that leaves the panel empty — 14.06px for this mark. Set `--depth` to
 override, `--scale` to inset the mark at rest, and `--frames` / `--hold` for
 timing.
 
+#### Gap file
+
+```sh
+python3 gfx/make-gap.py -t 255 -s 64 -b white
+```
+
+Reads `gfx/raw/astryx.svg` and writes `gfx/out/astryx-gap.json`, the defaults
+for both positional arguments. WLED takes it through its own upload in the 2D
+settings page; `bin/provision.sh` does not push it.
+
+**Firmware caveat.** WLED documents `1` as a regular pixel and `0` as one that
+is never painted. WLED 16.0.1 acts on the inverse: the entries written as `1`
+are the ones it leaves dark, and the `0`s are the ones it paints. Presumed to
+be a bug.
+
+The invocation above is therefore written for the firmware rather than for the
+documentation — it puts `0` on the logo shape and `1` on the ground around it,
+which on 16.0.1 is what lights the shape and blanks the masked area. Do not
+"correct" it to match the docs without re-testing on the panel. If a later
+release fixes the bug, add `-n/--negative` to flip the polarity back.
+
 ### Extra animations
 
 Eight more generators came over from the same project as work in progress. They
@@ -332,27 +353,6 @@ gfx/make-wave.py gfx/out/letters       # -> config/gifs/astryx-wave.gif
 
 To put one on the panel for good, give it a Makefile target next to the
 animations above, so it is rebuilt when the mark or the script changes.
-
-#### Gap file
-
-```sh
-python3 gfx/make-gap.py -t 255 -s 64 -b white
-```
-
-Reads `gfx/raw/astryx.svg` and writes `gfx/out/astryx-gap.json`, the defaults
-for both positional arguments. WLED takes it through its own upload in the 2D
-settings page; `bin/provision.sh` does not push it.
-
-**Firmware caveat.** WLED documents `1` as a regular pixel and `0` as one that
-is never painted. WLED 16.0.1 acts on the inverse: the entries written as `1`
-are the ones it leaves dark, and the `0`s are the ones it paints. Presumed to
-be a bug.
-
-The invocation above is therefore written for the firmware rather than for the
-documentation — it puts `0` on the logo shape and `1` on the ground around it,
-which on 16.0.1 is what lights the shape and blanks the masked area. Do not
-"correct" it to match the docs without re-testing on the panel. If a later
-release fixes the bug, add `-n/--negative` to flip the polarity back.
 
 ## Known quirks
 
