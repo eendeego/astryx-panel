@@ -46,6 +46,7 @@ factory reset. A board with a saved `cfg.json` keeps its stored settings.
 ## Usage
 
 ```bash
+bin/check-env.sh                      # verify all build prerequisites (Linux/macOS)
 bin/build.sh                          # build (default env: adafruit_matrixportal_esp32s3)
 bin/build.sh -e matrixportal_s3_custom  # build with baked-in pin config
 bin/build.sh -u [-p /dev/ttyACM0]     # build + flash over USB
