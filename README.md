@@ -304,6 +304,35 @@ distance that leaves the panel empty — 14.06px for this mark. Set `--depth` to
 override, `--scale` to inset the mark at rest, and `--frames` / `--hold` for
 timing.
 
+### Extra animations
+
+Eight more generators came over from the same project as work in progress. They
+work and their defaults write straight into `config/gifs/`, but they are
+deliberately **not** Makefile targets, so `gfx/generate-all.sh` leaves them
+alone and the panel's set of GIFs does not grow by eight without a decision:
+
+| Script | What it does |
+|---|---|
+| `gfx/make-spin.py` | spins the logo mark through a full turn |
+| `gfx/make-breathe.py` | scales the mark up and down on a loop |
+| `gfx/make-fade.py` | fades the mark in and out |
+| `gfx/make-wipe.py` | reveals the mark behind a sweeping straight or curved edge |
+| `gfx/make-explode.py` | scatters the mark's four lobes apart, or gathers them |
+| `gfx/make-glitch.py` | leaves the mark up and glitches it: slice shifts, RGB split, flashes |
+| `gfx/make-bounce.py` | letters bounce into place like rubber balls |
+| `gfx/make-wave.py` | letters undulate through a sine wave |
+
+The first six take the mark (`gfx/raw/astryx.svg`); `make-bounce.py` and
+`make-wave.py` take the letters, so `gfx/split-letters.py` has to have run:
+
+```sh
+gfx/make-spin.py                       # -> config/gifs/astryx-spin.gif
+gfx/make-wave.py gfx/out/letters       # -> config/gifs/astryx-wave.gif
+```
+
+To put one on the panel for good, give it a Makefile target next to the
+animations above, so it is rebuilt when the mark or the script changes.
+
 #### Gap file
 
 ```sh

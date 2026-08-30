@@ -76,6 +76,17 @@ size, so it also has to match `config/cfg.json` (`panels[0].w/h`) — a GIF wide
 or taller than the panel is refused by WLED's loader, and by `gen-presets.sh`
 ahead of it.
 
+**Not every generator is a Makefile target.** `make-spin.py`,
+`make-breathe.py`, `make-fade.py`, `make-wipe.py`, `make-explode.py`,
+`make-glitch.py`, `make-bounce.py` and `make-wave.py` came over as work in
+progress and are run by hand; their defaults write into `config/gifs/` all the
+same. Wiring one up is a decision about what the panel plays, not a tidy-up —
+each one added is another GIF uploaded to the board and another preset in the
+boot playlist. They follow the conventions below (argparse with
+`ArgumentDefaultsHelpFormatter`, `Wrote <path> (…)` last line, one palette per
+GIF), so a fix to a shared idea in `make-assemble.py` or `make-offset.py`
+usually wants applying to them too.
+
 **The dependency graph lives only in the `Makefile`.** Each output depends on
 its source *and* on the script that produces it, so editing a generator
 invalidates what it made. `generate-all.sh` adds a preflight check for the
