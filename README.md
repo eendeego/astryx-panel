@@ -99,8 +99,9 @@ enabled; for another panel edit `pin[0..1]`, `panels[0].w/h` and `len`/`total`
 together — that `bin/provision.sh` pushes to a running board:
 
 ```bash
-bin/provision.sh <board-ip>          # merge via /json/cfg, save, reboot, verify
-bin/provision.sh -u <board-ip>       # fresh boards: replace cfg.json wholesale (board reboots itself)
+bin/provision.sh                     # fresh board: connect to its WLED-AP, targets 4.3.2.1 by default
+bin/provision.sh <board-ip>          # board already on WiFi: merge via /json/cfg, save, reboot, verify
+bin/provision.sh -u [<board-ip>]     # replace cfg.json wholesale instead of merging (board reboots itself)
 bin/provision.sh -P 1234 <board-ip>  # board with a settings PIN
 bin/provision.sh -n <board-ip>       # merge only, reboot later yourself
 ```

@@ -2,8 +2,9 @@
 # Apply config/cfg.json (HUB75 panel + 2D matrix layout, anything build flags
 # can't bake) to a running WLED board over HTTP, then reboot it.
 #
-# Usage: ./provision.sh [options] <host>
-#   <host>                 Board IP or hostname (e.g. 192.168.1.50 or wled-abc123.local)
+# Usage: ./provision.sh [options] [host]
+#   [host]                 Board IP or hostname (default: 4.3.2.1, the WLED setup-AP address;
+#                          use the board's LAN IP or wled-xxxxxx.local once it has joined WiFi)
 #   -f, --file <cfg.json>  Config to apply (default: config/cfg.json)
 #   -u, --upload           Replace the board's cfg.json with the file instead of merging
 #                          (fresh boards only — discards any settings not in the file)
@@ -18,6 +19,7 @@ set -euo pipefail
 
 REPO_DIR=$(cd "$(dirname "$0")/.." && pwd)
 CFG=$REPO_DIR/config/cfg.json
+DEFAULT_HOST=4.3.2.1   # WLED-AP address of an unconfigured board
 HOST=""
 MODE=merge
 REBOOT=1
@@ -36,7 +38,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 die() { echo "ERROR: $*" >&2; exit 1; }
-[[ -n "$HOST" ]] || die "missing <host> (see --help)"
+HOST=${HOST:-$DEFAULT_HOST}
 command -v curl >/dev/null || die "curl is required"
 command -v python3 >/dev/null || die "python3 is required"
 [[ -f "$CFG" ]] || die "config file not found: $CFG"

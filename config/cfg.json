@@ -4,7 +4,7 @@
   },
   "hw": {
     "led": {
-    "total": 4096,
+    "total": 4097,
     "maxpwr": 0,
     "matrix": {
       "mpc": 1,
@@ -23,7 +23,7 @@
           "type": 65
         },
         {
-          "start": 1,
+          "start": 4096,
           "len": 1,
           "pin": [4],
           "order": 0,

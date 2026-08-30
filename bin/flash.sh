@@ -158,4 +158,4 @@ if ! "${CMD[@]}"; then
 fi
 echo
 echo "Done. If the board does not restart on its own, press its RESET button to boot WLED."
-echo "Next: once it is on the network, apply the panel config with: bin/provision.sh <board-ip>"
+echo "Next: apply the panel config with bin/provision.sh (targets the WLED-AP at 4.3.2.1; pass the LAN IP once it is on WiFi)"
