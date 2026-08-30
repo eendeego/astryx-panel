@@ -21,8 +21,9 @@ one 64×64 HUB75 panel, and the board's own status NeoPixel.
 |---|---|---|
 | Build flags (`config/platformio_override.ini`) | buttons, I2C pins | Yes — they are the defaults a fresh config is built from |
 | `config/cfg.json` via `bin/provision.sh` | HUB75 bus, the NeoPixel, 2D layout, ESP-NOW, boot preset | No — re-run `bin/provision.sh` |
+| `config/2d-gaps.json` via `bin/provision.sh` | the LEDs the mask covers | No — re-run `bin/provision.sh` |
 | `bin/gen-presets.sh` + `bin/provision.sh` | the GIFs and their presets | No — re-run both |
-| Nothing in this repo | gamma, transitions, UI preferences, the gap file | No — the settings below are the only record |
+| Nothing in this repo | gamma, transitions, UI preferences | No — the settings below are the only record |
 
 That last row is why this page exists: those values are not in `cfg.json` and
 no script restores them.
@@ -140,10 +141,15 @@ Offset X: 0 Y: 0
 
 (upload)
 
-> Generated: `python3 gfx/make-gap.py -t 255 -s 64 -b white` writes
-> `gfx/out/astryx-gap.json`. Upload it here by hand — `bin/provision.sh` does
-> not push it. Mind the inverted polarity the invocation deliberately produces;
-> the firmware caveat in `README.md` explains why.
+> Only needed by hand if you are not provisioning: `bin/provision.sh` uploads
+> `config/2d-gaps.json` for you, and this field puts a file at the same place
+> (`/2d-gaps.json`). Generate it with
+> `python3 gfx/make-gap.py -t 255 -s 64 -b white`.
+>
+> It only takes effect after a reboot, and WLED ignores an array shorter than
+> the matrix without saying so. If the mask comes out inverted — the ground lit
+> and the logo dark — that is the known polarity question; the firmware caveat
+> in `README.md` has the one-flag fix.
 
 ## User Interface
 

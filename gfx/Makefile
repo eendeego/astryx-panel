@@ -10,12 +10,14 @@
 #
 # Finished GIFs land in config/gifs/, where bin/gen-presets.sh and
 # bin/provision.sh pick them up, and are versioned with the rest of the
-# panel's artwork. Everything else is an intermediate and stays in out/,
-# which is not versioned.
+# panel's artwork; the gap file lands in config/ under the name the
+# firmware reads it by. Everything else is an intermediate and stays in
+# out/, which is not versioned.
 
 RAW  := raw
 OUT  := out
 GIFS := ../config/gifs
+CFG  := ../config
 
 MARQUEE  := make-marquee.sh
 GAP      := make-gap.py
@@ -37,13 +39,18 @@ ASSEMBLIES := $(GIFS)/astryx-assemble.gif \
 OFFSETS := $(GIFS)/astryx-inward.gif \
            $(GIFS)/astryx-outward.gif
 
-GENERATED := $(GIFS)/astryx-word.gif \
+# The gap file is named for the board, not for us: WLED 16.0.1 reads
+# /2d-gaps.json off its filesystem and no config field points at it, so
+# the name is the whole interface (wled00/FX_2Dfcn.cpp).
+GAPFILE := $(CFG)/2d-gaps.json
+
+GENERATED := $(GAPFILE) \
+             $(GIFS)/astryx-word.gif \
              $(GIFS)/astryx-word-c.gif \
              $(ASSEMBLIES) \
              $(OFFSETS)
 
 TARGETS := $(OUT)/astryx-word.png \
-           $(OUT)/astryx-gap.json \
            $(OUT)/letters/letters.json \
            $(GENERATED)
 
@@ -64,7 +71,7 @@ $(GIFS)/astryx-word-c.gif: $(OUT)/astryx-word.png $(MARQUEE) | $(GIFS)
 # -t 255 -b white, and the inverted polarity it produces, are deliberate:
 # see the firmware caveat in README.md before touching this recipe. The
 # explicit paths are the same files make-gap.py would default to.
-$(OUT)/astryx-gap.json: $(RAW)/astryx.svg $(GAP) | $(OUT)
+$(GAPFILE): $(RAW)/astryx.svg $(GAP)
 	python3 $(GAP) -t 255 -s $(SIZE) -b white $< $@
 
 # One SVG per letter, for animating them independently. The manifest
@@ -94,7 +101,9 @@ $(OUT) $(GIFS):
 	mkdir -p $@
 
 # Only what this Makefile writes: config/gifs/ also holds GIFs that were
-# dropped there by hand, and clean must not take those with it.
+# dropped there by hand, and clean must not take those with it. The gap
+# file goes too — it is provisioned from config/, but it is generated,
+# and generate-all.sh puts it straight back.
 clean:
 	rm -rf $(OUT)
 	rm -f $(GENERATED)

@@ -38,10 +38,13 @@ Usage:
   -q, --quiet         suppress the ASCII preview on stderr
 
   input.svg   source logo   (default: gfx/raw/astryx.svg)
-  output.json gap file      (default: gfx/out/astryx-gap.json)
+  output.json gap file      (default: config/2d-gaps.json)
 
-Generated files land in gfx/out/, which is not versioned. Missing parent
-directories are created for both the gap file and --png.
+The gap file is named for the board: WLED reads /2d-gaps.json off its
+filesystem and no config field points at it, so bin/provision.sh uploads
+config/2d-gaps.json under that name. --png is a workings file and belongs
+in gfx/out/, which is not versioned. Missing parent directories are
+created for both.
 """
 
 import argparse
@@ -55,8 +58,9 @@ from pathlib import Path
 from PIL import Image
 
 GFX_DIR = Path(__file__).resolve().parent
+REPO_ROOT = GFX_DIR.parent
 DEFAULT_SVG = GFX_DIR / "raw" / "astryx.svg"
-DEFAULT_OUT = GFX_DIR / "out" / "astryx-gap.json"
+DEFAULT_OUT = REPO_ROOT / "config" / "2d-gaps.json"
 
 
 def rasterize(svg, size, keep_aspect_ratio, background, dest):

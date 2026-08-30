@@ -15,11 +15,11 @@ are needed to build or flash the firmware, so they are not in
 ## Commands
 
 ```sh
-gfx/generate-all.sh                       # rebuild whatever artwork is stale
-gfx/generate-all.sh -n                    # dry run: print the recipes that would run
-gfx/generate-all.sh -f -j 4               # force a full rebuild, 4 targets at a time
-gfx/generate-all.sh clean                 # delete gfx/out/ and the generated GIFs
-gfx/generate-all.sh out/astryx-gap.json   # one target (paths are relative to gfx/)
+gfx/generate-all.sh                         # rebuild whatever artwork is stale
+gfx/generate-all.sh -n                      # dry run: print the recipes that would run
+gfx/generate-all.sh -f -j 4                 # force a full rebuild, 4 targets at a time
+gfx/generate-all.sh clean                   # delete gfx/out/ and everything it generated
+gfx/generate-all.sh ../config/2d-gaps.json  # one target (paths are relative to gfx/)
 ```
 
 It wraps the `Makefile`, whose recipes are the invocations known to produce
@@ -34,7 +34,7 @@ rsvg-convert -o gfx/out/astryx-word.png -w 64 -a gfx/raw/astryx-word.svg
 gfx/make-marquee.sh gfx/out/astryx-word.png config/gifs/astryx-word.gif        # flat
 gfx/make-marquee.sh -c gfx/out/astryx-word.png config/gifs/astryx-word-c.gif   # cylinder
 
-python3 gfx/make-gap.py -t 255 -s 64 -b white   # raw/astryx.svg -> out/astryx-gap.json
+python3 gfx/make-gap.py -t 255 -s 64 -b white   # raw/astryx.svg -> config/2d-gaps.json
 python3 gfx/split-letters.py                    # -> out/letters/NN-<letter>.svg
 python3 gfx/make-assemble.py                    # -> config/gifs/astryx-assemble.gif
 python3 gfx/make-offset.py -d in                # -> config/gifs/astryx-inward.gif
@@ -62,11 +62,13 @@ square mark) feeds the gap file and the offset animations;
 `raw/astryx-word.svg` (1060x200 wordmark) feeds the marquee, via a PNG, and
 the letter split that the assemble animation builds on.
 
-**Finished GIFs go to `config/gifs/`, intermediates to `out/`.** `config/gifs/`
-is what `bin/gen-presets.sh` turns into presets and what `bin/provision.sh`
-uploads, so a generated GIF belongs there and is versioned; the PNG and the gap
-file are workings and stay in `out/`, which is gitignored. `make clean` removes
-`out/` and the GIFs this Makefile writes, never the whole of `config/gifs/` —
+**What the board is given goes to `config/`, workings stay in `out/`.**
+`config/gifs/` is what `bin/gen-presets.sh` turns into presets and what
+`bin/provision.sh` uploads; `config/2d-gaps.json` is uploaded by the same
+script under exactly that name, which is the only thing that identifies it to
+the firmware. Both are versioned. The wordmark PNG and the split letters are
+workings and stay in `out/`, which is gitignored. `make clean` removes `out/`
+and what the Makefile wrote into `config/`, never the whole of `config/gifs/` —
 GIFs also arrive there by hand.
 
 **64 is hardcoded in three places** and must agree: `CANVAS_W`/`CANVAS_H` in
@@ -238,13 +240,20 @@ Output values are WLED's documented ones: 1 = regular pixel, 0 = never paint.
 -1 (physically missing) is never emitted, since the panel is a solid
 rectangle. The JSON is written one matrix row per line.
 
-**WLED 16.0.1 acts on the inverse of that documentation** — it leaves the 1s
-dark and paints the 0s — which is presumed to be a firmware bug. The script
-keeps emitting the documented polarity, so the gap file has to be authored
-inverted for the panel to look right: the tested invocation deliberately puts
-0 on the logo shape and 1 on the ground. Anything that looks like a polarity
-mistake in the tested invocation, `README.md`, or `threshold()` is load-bearing
-until the firmware is fixed; a fix would mean adding `-n/--negative`.
+**The polarity is disputed; do not "fix" it from either side alone.** The
+notes this pipeline arrived with say WLED 16.0.1 acts on the inverse of its own
+documentation — leaving the 1s dark and painting the 0s — presumed a firmware
+bug, and the tested invocation is authored for that: 0 on the logo shape, 1 on
+the ground. But `setUpMatrix()` in `WLED/wled00/FX_2Dfcn.cpp` maps a pixel only
+where the entry is `> 0`, i.e. 1 = painted, exactly as documented. Read
+literally, the tested file lights the ground and blanks the logo.
+
+The note came from watching the panel, the code from reading the pinned
+release; nothing here can settle it. So the script keeps emitting the
+documented polarity, the tested invocation is left alone, and the fix if the
+panel disagrees is one flag — `-n/--negative` on the `$(GAPFILE)` recipe.
+Anything that looks like a polarity mistake in that recipe, in `README.md`, or
+in `threshold()` is load-bearing until someone looks at the LEDs.
 
 The `--channel auto` default prefers alpha and falls back to luma only when the
 render is fully opaque. The tested invocation therefore behaves quite
