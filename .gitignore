@@ -1,0 +1,3 @@
+# WLED sources live in the sibling checkout ../WLED and must never be vendored
+# here (see CLAUDE.md). Ignore a stray in-repo clone so it can't be committed.
+WLED/
