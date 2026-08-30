@@ -36,6 +36,7 @@ gfx/make-marquee.sh -c gfx/out/astryx-word.png config/gifs/astryx-word-c.gif   #
 
 python3 gfx/make-gap.py -t 255 -s 64 -b white   # raw/astryx.svg -> out/astryx-gap.json
 python3 gfx/split-letters.py                    # -> out/letters/NN-<letter>.svg
+python3 gfx/make-assemble.py                    # -> config/gifs/astryx-assemble.gif
 ```
 
 These invocations exist in three places — the root `README.md`, the `Makefile`,
@@ -146,6 +147,50 @@ Letter geometry lives in `out/letters/letters.json` — index, label, file, and
 the letter's box in wordmark coordinates. Animation code should read placement
 from there rather than re-deriving it. The letters are an intermediate, not
 artwork, so they stay in `out/`.
+
+### make-assemble.py
+
+The first consumer of the split letters, and the pattern for animations that
+follow. It never re-derives layout: `letters.json` bounds, scaled by
+`word_width / viewBox width` and centred, put each letter exactly where the
+wordmark has it, so the held frame is the wordmark (verified to within
+antialiasing — worst 25/255, nothing above 32).
+
+Two independent angles, easily confused: `--rotate` stands the *word* at an
+angle (letters turned with it), `--angle` turns the directions letters *arrive
+from* without moving the word. The ±45 variants use `--rotate`.
+
+`--word-width` defaults to 0, meaning `fitted_width()` — the largest word that
+fits at the current rotation. A turned W×H rectangle sweeps `W|cos| + H|sin|`
+by `W|sin| + H|cos|`, so a 5.3:1 wordmark on a diagonal gets the panel's
+diagonal instead of its edge and comes out about a fifth larger. Verified not
+to clip: the same word on a 96px canvas has the identical 893 lit pixels.
+
+Entry direction is a vector, not one of four sides. A letter starts at the
+*nearest* distance along it that clears the canvas — clearing one axis is
+enough — and at exactly that distance its box rests against the edge and draws
+nothing, so no clearance margin is wanted. Adding one shifts every in-flight
+position and changes animations that are already approved.
+
+Placement is by centre, because that is what rotation preserves; but an
+unrotated sprite is measured by its *exact* ink box rather than its rounded
+raster. Without that split, adding rotation silently shifted the flat animation
+by a tenth of a pixel — invisible, but it made `--rotate 0` stop reproducing
+the approved GIF. Both regimes are checked with `cmp` against a stored copy.
+
+Two more details that are easy to get wrong here:
+
+- **Compose above panel resolution.** Letters are ~12 px tall at 64x64, so
+  integer-pixel motion visibly stair-steps. Frames are built at
+  `--supersample` times the panel size and boxed down, which buys sub-pixel
+  travel. This is the same trick the cylinder mode in `make-marquee.sh` uses
+  for a different reason.
+- **One palette for the whole GIF.** Frames are quantized against a palette
+  taken from the finished word; per-frame adaptive palettes make colours crawl
+  as letters land. Pillow also merges runs of identical frames and sums their
+  delays, so a 90-frame animation is stored as ~44 — the total duration is
+  unchanged, and the summary line reports both numbers so the difference does
+  not read as a bug.
 
 ### make-gap.py
 

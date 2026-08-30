@@ -237,6 +237,50 @@ it the wordmark viewBox instead, so it renders in place. Either way
   "bounds": [ 0.0, 4.5, 193.75, 192.5 ], "subpaths": 2 }
 ```
 
+#### Assembling the word
+
+```sh
+gfx/make-assemble.py
+```
+
+Writes `config/gifs/astryx-assemble.gif`: the six letters fly in from the
+edges, one after another, settle into the wordmark, and the finished word is
+held before the loop restarts. Reads `gfx/out/letters/`, so run
+`gfx/split-letters.py` first — or just `gfx/generate-all.sh`, which sequences
+them.
+
+Defaults give 3.6 seconds: 45 frames of flight, 45 held, at 4cs a frame. The
+knobs worth reaching for are `--sides` (which edge each letter enters from,
+cycled — `ltrb` by default), `--stagger` (frames between one letter setting off
+and the next), `--overshoot` (how far a letter overruns before settling), and
+`--hold`.
+
+##### Diagonal variations
+
+`--rotate` stands the whole word at an angle, letters turned with it:
+
+```sh
+gfx/make-assemble.py --rotate  45 gfx/out/letters config/gifs/astryx-assemble+45.gif
+gfx/make-assemble.py --rotate -45 gfx/out/letters config/gifs/astryx-assemble-45.gif
+```
+
+A diagonal word is also a **bigger** word. The wordmark is 5.3:1, so lying flat
+it runs out of room at the panel's edge, but on a diagonal it has the panel's
+diagonal to use. The word is sized to fill whatever angle it is given:
+
+| `--rotate` | word | letter height | panel lit |
+|---|---|---|---|
+| `0` | 64.0 × 12.1 px | 12.1 px | 622 px |
+| `±45` | 76.1 × 14.4 px | 14.4 px | 893 px |
+
+Any angle works — `--rotate 20` tilts it slightly and sizes it to match.
+`--word-width` overrides the fit if you want it smaller. All three targets are
+built by `gfx/generate-all.sh`.
+
+A separate knob, `--angle`, turns the directions letters *arrive from* without
+moving the word: at `--angle 45` they cross the corners instead of the edges.
+It composes with `--rotate`.
+
 #### Gap file
 
 ```sh

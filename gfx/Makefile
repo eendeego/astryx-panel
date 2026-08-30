@@ -17,15 +17,23 @@ RAW  := raw
 OUT  := out
 GIFS := ../config/gifs
 
-MARQUEE := make-marquee.sh
-GAP     := make-gap.py
-SPLIT   := split-letters.py
+MARQUEE  := make-marquee.sh
+GAP      := make-gap.py
+SPLIT    := split-letters.py
+ASSEMBLE := make-assemble.py
 
 # Panel edge, in pixels. Also hardcoded as the canvas size in make-marquee.sh.
 SIZE := 64
 
+# The same fly-in, with the word standing at the angle each target
+# carries below.
+ASSEMBLIES := $(GIFS)/astryx-assemble.gif \
+              $(GIFS)/astryx-assemble+45.gif \
+              $(GIFS)/astryx-assemble-45.gif
+
 GENERATED := $(GIFS)/astryx-word.gif \
-             $(GIFS)/astryx-word-c.gif
+             $(GIFS)/astryx-word-c.gif \
+             $(ASSEMBLIES)
 
 TARGETS := $(OUT)/astryx-word.png \
            $(OUT)/astryx-gap.json \
@@ -57,6 +65,17 @@ $(OUT)/astryx-gap.json: $(RAW)/astryx.svg $(GAP) | $(OUT)
 # lists every letter file, so if it is current they all are.
 $(OUT)/letters/letters.json: $(RAW)/astryx-word.svg $(SPLIT) | $(OUT)
 	python3 $(SPLIT) $< $(dir $@)
+
+# The letters flying in from the edges and settling into the word, which
+# stands at the angle each target carries. On a diagonal the word may be
+# larger, since it then spans the panel's diagonal rather than its edge,
+# and make-assemble.py sizes it to fit whatever angle it is given.
+$(GIFS)/astryx-assemble.gif:     ROTATE := 0
+$(GIFS)/astryx-assemble+45.gif:  ROTATE := 45
+$(GIFS)/astryx-assemble-45.gif:  ROTATE := -45
+
+$(ASSEMBLIES): $(OUT)/letters/letters.json $(ASSEMBLE) | $(GIFS)
+	python3 $(ASSEMBLE) --rotate $(ROTATE) $(dir $<) $@
 
 $(OUT) $(GIFS):
 	mkdir -p $@
