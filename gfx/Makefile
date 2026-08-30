@@ -21,6 +21,7 @@ MARQUEE  := make-marquee.sh
 GAP      := make-gap.py
 SPLIT    := split-letters.py
 ASSEMBLE := make-assemble.py
+OFFSET   := make-offset.py
 
 # Panel edge, in pixels. Also hardcoded as the canvas size in make-marquee.sh.
 SIZE := 64
@@ -31,9 +32,15 @@ ASSEMBLIES := $(GIFS)/astryx-assemble.gif \
               $(GIFS)/astryx-assemble+45.gif \
               $(GIFS)/astryx-assemble-45.gif
 
+# The logo mark's outline walked in until it goes out, and out until it
+# takes the panel.
+OFFSETS := $(GIFS)/astryx-inward.gif \
+           $(GIFS)/astryx-outward.gif
+
 GENERATED := $(GIFS)/astryx-word.gif \
              $(GIFS)/astryx-word-c.gif \
-             $(ASSEMBLIES)
+             $(ASSEMBLIES) \
+             $(OFFSETS)
 
 TARGETS := $(OUT)/astryx-word.png \
            $(OUT)/astryx-gap.json \
@@ -76,6 +83,12 @@ $(GIFS)/astryx-assemble-45.gif:  ROTATE := -45
 
 $(ASSEMBLIES): $(OUT)/letters/letters.json $(ASSEMBLE) | $(GIFS)
 	python3 $(ASSEMBLE) --rotate $(ROTATE) $(dir $<) $@
+
+$(GIFS)/astryx-inward.gif:  WAY := in
+$(GIFS)/astryx-outward.gif: WAY := out
+
+$(OFFSETS): $(RAW)/astryx.svg $(OFFSET) | $(GIFS)
+	python3 $(OFFSET) -d $(WAY) $< $@
 
 $(OUT) $(GIFS):
 	mkdir -p $@

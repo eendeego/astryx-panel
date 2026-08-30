@@ -37,6 +37,8 @@ gfx/make-marquee.sh -c gfx/out/astryx-word.png config/gifs/astryx-word-c.gif   #
 python3 gfx/make-gap.py -t 255 -s 64 -b white   # raw/astryx.svg -> out/astryx-gap.json
 python3 gfx/split-letters.py                    # -> out/letters/NN-<letter>.svg
 python3 gfx/make-assemble.py                    # -> config/gifs/astryx-assemble.gif
+python3 gfx/make-offset.py -d in                # -> config/gifs/astryx-inward.gif
+python3 gfx/make-offset.py -d out               # -> config/gifs/astryx-outward.gif
 ```
 
 These invocations exist in three places — the root `README.md`, the `Makefile`,
@@ -56,9 +58,9 @@ gap file that switches those LEDs off for good. `make-marquee.sh` produces the
 animation shown on the part of the panel that is visible.
 
 **Two sources, no shared code between the generators.** `raw/astryx.svg` (the
-square mark) feeds the gap file; `raw/astryx-word.svg` (1060x200 wordmark)
-feeds the marquee, via a PNG, and the letter split that the per-letter
-animations build on.
+square mark) feeds the gap file and the offset animations;
+`raw/astryx-word.svg` (1060x200 wordmark) feeds the marquee, via a PNG, and
+the letter split that the assemble animation builds on.
 
 **Finished GIFs go to `config/gifs/`, intermediates to `out/`.** `config/gifs/`
 is what `bin/gen-presets.sh` turns into presets and what `bin/provision.sh`
@@ -191,6 +193,33 @@ Two more details that are easy to get wrong here:
   delays, so a 90-frame animation is stored as ~44 — the total duration is
   unchanged, and the summary line reports both numbers so the difference does
   not read as a bug.
+
+### make-offset.py
+
+Offsets the mark's outline by **stroking**, not by eroding pixels: a stroke is
+centred on the outline, so a background-coloured stroke of `2*d` eats exactly
+`d` in from either side. Counters need no special case, and joins are round
+because that is what an offset outline is at a corner. It stays vector-exact at
+any distance, which no MinFilter/MaxFilter pass would be.
+
+**Only one animation is rendered.** `--direction out` reverses the frame list,
+holds included, so outward is inward read backwards — checked frame by frame,
+0/255 difference. Growing the mark by stroking in the fill colour was the first
+attempt and is not what is wanted: the mark already covers 83% of the panel, so
+dilating it merely floods the panel in 5.82px and looks nothing like the
+inward run.
+
+`--depth 0` (the default) bisects for the first distance that leaves the panel
+empty — 14.06px for this mark.
+
+Colours are needed in two forms: as written for the SVG, as numbers for Pillow.
+`--fill`/`--background` keep the string and gain a parsed `*_rgb` sibling.
+Overwriting the string with the tuple yields `fill="(61, 135, 255)"`, which is
+not a colour, and rsvg renders nothing — a blank panel that reads as broken
+geometry rather than a bad attribute.
+
+The GIF palette/save block mirrors `make-assemble.py`; the two are parallel by
+hand, so a fix to one wants applying to the other.
 
 ### make-gap.py
 

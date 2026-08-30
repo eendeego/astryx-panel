@@ -281,6 +281,29 @@ A separate knob, `--angle`, turns the directions letters *arrive from* without
 moving the word: at `--angle 45` they cross the corners instead of the edges.
 It composes with `--rotate`.
 
+#### Offsetting the logo mark
+
+```sh
+gfx/make-offset.py -d in   # -> config/gifs/astryx-inward.gif
+gfx/make-offset.py -d out  # -> config/gifs/astryx-outward.gif
+```
+
+Takes `gfx/raw/astryx.svg` and walks its outline inward: the mark is held, then
+thins until its four lobes come apart and dwindle away. **Outward is that same
+run in reverse time**, holds included — the lobes appear out of an empty panel,
+close up into the mark, and it is held. The two cut together back to back.
+
+The offsets are exact, not pixel erosion: a stroke sits centred on an outline,
+so stroking it in the background colour at twice the wanted distance eats
+exactly that distance in from either side. The counters between the lobes need
+no special handling, and joins are round, since that is what an offset outline
+is at a corner.
+
+How far to travel is measured, not guessed: the script bisects for the first
+distance that leaves the panel empty — 14.06px for this mark. Set `--depth` to
+override, `--scale` to inset the mark at rest, and `--frames` / `--hold` for
+timing.
+
 #### Gap file
 
 ```sh
