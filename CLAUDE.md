@@ -41,6 +41,11 @@ vendor WLED code into this repo.
 - A first compile of a new env can fail with `compilation terminated` and no
   error message (OOM during parallel compile on this VM); retry once before
   investigating.
+- `bin/flash.sh` does a from-scratch esptool flash (bootloader @0x0,
+  partitions @0x8000, boot_app0 @0xe000, firmware @0x10000, `--erase-all`
+  unless `-n`). Without `-f` it uses the boot files from the local PlatformIO
+  build; with `-f <release.bin>` (or `-d`) it downloads WLED-WebInstaller's
+  boot files into git-ignored `.cache/boot/`. `--dry-run` prints the command.
 
 ## Toolchain
 

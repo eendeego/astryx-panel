@@ -10,7 +10,8 @@ WLED source itself is a separate checkout under `WLED/` and is not vendored here
 
 ```
 astryx-panel/                  # this repo
-├── bin/build.sh               # build/flash script
+├── bin/build.sh               # build (+ upload via PlatformIO)
+├── bin/flash.sh               # full esptool flash: bootloader + partitions + firmware
 ├── bin/check-env.sh           # prerequisite checker
 ├── config/platformio_override.ini  # board config (source of truth)
 ├── WLED/                      # upstream WLED checkout (git-ignored, separate repo)
@@ -52,12 +53,33 @@ factory reset. A board with a saved `cfg.json` keeps its stored settings.
 bin/check-env.sh                      # verify build prerequisites; prints a fix for each problem
 bin/build.sh                          # build (default env: adafruit_matrixportal_esp32s3)
 bin/build.sh -e matrixportal_s3_custom  # build with baked-in pin config
-bin/build.sh -u [-p /dev/ttyACM0]     # build + flash over USB
+bin/build.sh -u [-p /dev/ttyACM0]     # build + flash over USB (board already running WLED)
 bin/build.sh -c                       # clean build
 ```
 
 Firmware output: `WLED/.pio/build/<env>/firmware.bin` and a versioned copy
 under `WLED/build_output/release/`.
+
+## Flashing from scratch
+
+`bin/build.sh -u` uploads the application only and expects a board that already
+runs WLED. For a first install (a board still running TinyUF2/CircuitPython) or
+to flash a release image, use `bin/flash.sh`, which writes the bootloader,
+partition table, `boot_app0` and the firmware with esptool, after a full chip
+erase by default:
+
+```bash
+bin/flash.sh -e matrixportal_s3_custom          # flash the local build (boot files from the same build)
+bin/flash.sh -f WLED_16.0.1_ESP32-S3_Adafruit_Matrixportal.bin   # flash a release image
+bin/flash.sh -n ...                              # keep existing settings (no chip erase)
+bin/flash.sh --dry-run ...                       # show the esptool command only
+```
+
+Put the board in ROM bootloader mode first (hold BOOT while pressing RESET).
+The port is auto-detected when exactly one candidate exists; otherwise pass
+`-p <port>`. With `-f` the boot files WLED's web installer uses are downloaded
+once into `.cache/boot/` (git-ignored); `-d` forces that source for local
+builds too. `esptool` comes from PATH or from PlatformIO's bundled copy.
 
 ## Known quirks
 
