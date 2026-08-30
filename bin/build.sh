@@ -14,6 +14,9 @@ REPO_DIR=$(cd "$(dirname "$0")/.." && pwd)
 WLED_DIR=$REPO_DIR/WLED                       # upstream checkout, git-ignored here
 OVERRIDE_SRC=$REPO_DIR/config/platformio_override.ini
 OVERRIDE_LINK=$WLED_DIR/platformio_override.ini
+WLED_VERSION=
+# shellcheck source=../config/wled.conf
+[[ -f "$REPO_DIR/config/wled.conf" ]] && . "$REPO_DIR/config/wled.conf"
 
 ENV_NAME="adafruit_matrixportal_esp32s3"
 UPLOAD=0
@@ -47,6 +50,16 @@ if [[ -L "$OVERRIDE_LINK" || ! -e "$OVERRIDE_LINK" ]]; then
 elif [[ ! "$OVERRIDE_LINK" -ef "$OVERRIDE_SRC" ]]; then
   echo "WARNING: $OVERRIDE_LINK is a regular file, not a link to config/platformio_override.ini;" >&2
   echo "         the tracked board config is NOT being used." >&2
+fi
+
+# Warn (don't stop) when the checkout is not at the configured release.
+if [[ -n "$WLED_VERSION" ]]; then
+  HEAD_SHA=$(git -C "$WLED_DIR" rev-parse HEAD 2>/dev/null || true)
+  WANT_SHA=$(git -C "$WLED_DIR" rev-parse --verify -q "$WLED_VERSION^{commit}" 2>/dev/null || true)
+  if [[ -z "$HEAD_SHA" || "$HEAD_SHA" != "$WANT_SHA" ]]; then
+    echo "WARNING: WLED checkout is at $(git -C "$WLED_DIR" describe --tags --always 2>/dev/null || echo unknown)," \
+         "config/wled.conf wants $WLED_VERSION (run bin/check-env.sh for the fix)" >&2
+  fi
 fi
 
 cd "$WLED_DIR"

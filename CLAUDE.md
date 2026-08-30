@@ -7,8 +7,10 @@ Context for Claude Code sessions working on astryx-panel.
 A custom WLED firmware build targeting the **Adafruit MatrixPortal ESP32-S3**
 with a HUB75 matrix panel. This repo holds tooling and configuration only;
 WLED sources live in the git-ignored checkout `WLED/` at the repo root
-(clone of https://github.com/wled/WLED, WLED V5 dev, `17.0.0-devV5`). Do not
-vendor WLED code into this repo.
+(clone of https://github.com/wled/WLED). The release to build is pinned by
+`WLED_VERSION` in `config/wled.conf` (latest stable, `v16.0.1` as of
+2026-08-30); `check-env.sh` warns and `build.sh` warns if the checkout is at
+something else. Do not vendor WLED code into this repo.
 
 ## Key facts
 

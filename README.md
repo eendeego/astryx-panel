@@ -14,14 +14,18 @@ astryx-panel/                  # this repo
 ├── bin/flash.sh               # full esptool flash: bootloader + partitions + firmware
 ├── bin/check-env.sh           # prerequisite checker
 ├── config/platformio_override.ini  # board config (source of truth)
+├── config/wled.conf           # WLED release to build (WLED_VERSION)
 ├── WLED/                      # upstream WLED checkout (git-ignored, separate repo)
 │   └── platformio_override.ini -> ../config/platformio_override.ini
 ├── README.md
 └── CLAUDE.md                  # context for Claude Code sessions
 ```
 
-Get the WLED sources with `git clone https://github.com/wled/WLED WLED` from the
-repo root. WLED picks up the board config through the symlink shown above;
+The WLED release to build is pinned in `config/wled.conf` (`WLED_VERSION`,
+currently the latest stable). Get the sources from the repo root with
+`git clone --branch <WLED_VERSION> https://github.com/wled/WLED WLED` —
+`bin/check-env.sh` prints the exact command and warns when the checkout is at
+a different version. WLED picks up the board config through the symlink shown above;
 `bin/build.sh` creates or repairs it automatically (manually:
 `ln -sfn ../config/platformio_override.ini WLED/platformio_override.ini`).
 

@@ -15,6 +15,9 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 REPO_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
 WLED_DIR=$REPO_DIR/WLED                     # in-repo checkout, git-ignored
 WLED_REPO_URL=https://github.com/wled/WLED
+WLED_VERSION=
+# shellcheck source=../config/wled.conf
+[ -f "$REPO_DIR/config/wled.conf" ] && . "$REPO_DIR/config/wled.conf"
 
 FAILURES=0
 WARNINGS=0
@@ -55,9 +58,20 @@ export PATH
 # --- WLED checkout ------------------------------------------------------------
 if [ -f "$WLED_DIR/platformio.ini" ]; then
   pass "WLED checkout found at $WLED_DIR"
+  if [ -n "$WLED_VERSION" ]; then
+    HEAD_SHA=$(git -C "$WLED_DIR" rev-parse HEAD 2>/dev/null || true)
+    WANT_SHA=$(git -C "$WLED_DIR" rev-parse --verify -q "$WLED_VERSION^{commit}" 2>/dev/null || true)
+    HAVE_DESC=$(git -C "$WLED_DIR" describe --tags --always 2>/dev/null || echo unknown)
+    if [ -n "$HEAD_SHA" ] && [ "$HEAD_SHA" = "$WANT_SHA" ]; then
+      pass "WLED checkout is at $WLED_VERSION (config/wled.conf)"
+    else
+      warn "WLED checkout is at $HAVE_DESC, config/wled.conf wants $WLED_VERSION" \
+           "git -C \"$WLED_DIR\" fetch --tags origin && git -C \"$WLED_DIR\" checkout $WLED_VERSION"
+    fi
+  fi
 else
   fail "WLED checkout not found (expected $WLED_DIR with platformio.ini)" \
-       "git clone $WLED_REPO_URL \"$WLED_DIR\""
+       "git clone${WLED_VERSION:+ --branch $WLED_VERSION} $WLED_REPO_URL \"$WLED_DIR\""
 fi
 
 # --- Node.js ------------------------------------------------------------------
