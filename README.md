@@ -215,6 +215,28 @@ Cylindrical marquee:
 gfx/make-marquee.sh -c gfx/out/astryx-word.png config/gifs/astryx-word-c.gif
 ```
 
+#### Letters
+
+```sh
+gfx/split-letters.py
+```
+
+Cuts `gfx/raw/astryx-word.svg` into `gfx/out/letters/01-A.svg` … `06-x.svg`,
+one file per letter, for animating letters independently. The wordmark is a
+single `<path>`, so this splits its subpaths, measures each by rendering it,
+and puts the counters (the holes in the A and the R) back with the letter they
+belong to. It then redraws the pieces and compares against the source, so a
+mis-grouped counter fails loudly rather than quietly.
+
+Each letter gets a viewBox tight around its own ink; `-k/--keep-canvas` gives
+it the wordmark viewBox instead, so it renders in place. Either way
+`gfx/out/letters/letters.json` records where each letter sits in the wordmark:
+
+```json
+{ "index": 1, "label": "A", "file": "01-A.svg",
+  "bounds": [ 0.0, 4.5, 193.75, 192.5 ], "subpaths": 2 }
+```
+
 #### Gap file
 
 ```sh

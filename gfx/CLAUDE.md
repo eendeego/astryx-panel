@@ -2,7 +2,7 @@
 
 Context for Claude Code sessions working in `gfx/`.
 
-Two generators that produce artwork for the 64x64 HUB75 panel, plus a
+Generators that produce artwork for the 64x64 HUB75 panel, plus a
 `Makefile` that wires them together. There is no package manifest and no test
 suite — the scripts here are the deliverable, and verification is visual (look
 at the GIF, look at the ASCII mask preview).
@@ -35,6 +35,7 @@ gfx/make-marquee.sh gfx/out/astryx-word.png config/gifs/astryx-word.gif        #
 gfx/make-marquee.sh -c gfx/out/astryx-word.png config/gifs/astryx-word-c.gif   # cylinder
 
 python3 gfx/make-gap.py -t 255 -s 64 -b white   # raw/astryx.svg -> out/astryx-gap.json
+python3 gfx/split-letters.py                    # -> out/letters/NN-<letter>.svg
 ```
 
 These invocations exist in three places — the root `README.md`, the `Makefile`,
@@ -53,9 +54,10 @@ LEDs behind it glow instead of staying dark — `make-gap.py` produces the WLED
 gap file that switches those LEDs off for good. `make-marquee.sh` produces the
 animation shown on the part of the panel that is visible.
 
-**Two sources, two pipelines, no shared code.** `raw/astryx.svg` (square logo
-mark) feeds only the gap file; `raw/astryx-word.svg` (1060x200 wordmark) is
-rasterized to a PNG that feeds only the marquee.
+**Two sources, no shared code between the generators.** `raw/astryx.svg` (the
+square mark) feeds the gap file; `raw/astryx-word.svg` (1060x200 wordmark)
+feeds the marquee, via a PNG, and the letter split that the per-letter
+animations build on.
 
 **Finished GIFs go to `config/gifs/`, intermediates to `out/`.** `config/gifs/`
 is what `bin/gen-presets.sh` turns into presets and what `bin/provision.sh`
@@ -115,6 +117,35 @@ falloff at `--shade 1`, no dimming at all at 0. Frames are rendered at 4x
 horizontal supersampling and boxed down, because near the rim many source
 columns collapse into one output pixel and point sampling shimmers. These
 frames are opaque, so this mode wants an opaque background.
+
+### split-letters.py
+
+Feeds the per-letter animation work. The wordmark is one `<path>`, so letters
+exist only as subpaths of a single `d`; the split happens at each moveto.
+
+Three things there are easy to get wrong, and the code exists to handle them:
+
+- **Not every subpath starts absolute.** The A's counter opens with a relative
+  `m` (`…z m2.36 117.77…`), so its position depends on where the previous
+  subpath ended. Because these subpaths all close with `z`, the previous end is
+  that subpath's own start, so no full path walk is needed — but the rewrite to
+  absolute `M` must also turn the moveto's trailing implicit linetos into an
+  explicit relative `l`, or they change meaning.
+- **Counters must stay with their letter.** A subpath contained by another is
+  folded into it and kept in source order inside one `d`, so the fill rule
+  still cuts the hole. Bounds come from rendering each subpath and measuring
+  ink with Pillow, which accounts for curve extrema that reading control points
+  would miss.
+- **Rewritten path data needs proof.** `verify()` redraws all the pieces on the
+  source canvas and compares against the source. Compare alpha and colour
+  flattened over an opaque backdrop, never raw RGBA: the RGB of a transparent
+  pixel is arbitrary and differs by up to 255 between renders that look
+  identical.
+
+Letter geometry lives in `out/letters/letters.json` — index, label, file, and
+the letter's box in wordmark coordinates. Animation code should read placement
+from there rather than re-deriving it. The letters are an intermediate, not
+artwork, so they stay in `out/`.
 
 ### make-gap.py
 

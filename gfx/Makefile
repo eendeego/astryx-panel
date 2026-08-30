@@ -19,6 +19,7 @@ GIFS := ../config/gifs
 
 MARQUEE := make-marquee.sh
 GAP     := make-gap.py
+SPLIT   := split-letters.py
 
 # Panel edge, in pixels. Also hardcoded as the canvas size in make-marquee.sh.
 SIZE := 64
@@ -28,6 +29,7 @@ GENERATED := $(GIFS)/astryx-word.gif \
 
 TARGETS := $(OUT)/astryx-word.png \
            $(OUT)/astryx-gap.json \
+           $(OUT)/letters/letters.json \
            $(GENERATED)
 
 .PHONY: all clean
@@ -49,6 +51,12 @@ $(GIFS)/astryx-word-c.gif: $(OUT)/astryx-word.png $(MARQUEE) | $(GIFS)
 # explicit paths are the same files make-gap.py would default to.
 $(OUT)/astryx-gap.json: $(RAW)/astryx.svg $(GAP) | $(OUT)
 	python3 $(GAP) -t 255 -s $(SIZE) -b white $< $@
+
+# One SVG per letter, for animating them independently. The manifest
+# stands in for the whole directory: the script writes it last, and it
+# lists every letter file, so if it is current they all are.
+$(OUT)/letters/letters.json: $(RAW)/astryx-word.svg $(SPLIT) | $(OUT)
+	python3 $(SPLIT) $< $(dir $@)
 
 $(OUT) $(GIFS):
 	mkdir -p $@
