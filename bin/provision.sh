@@ -45,7 +45,7 @@ while [[ $# -gt 0 ]]; do
     -n|--no-reboot)    REBOOT=0; shift ;;
     -v|--verify-only)  VERIFY_ONLY=1; shift ;;
     -P|--pin)          PIN="$2"; shift 2 ;;
-    -h|--help)         sed -n '2,21{s/^# \{0,1\}//p}' "$0"; exit 0 ;;
+    -h|--help)         sed -n '2,21{s/^# \{0,1\}//p;}' "$0"; exit 0 ;;
     -*) echo "Unknown option: $1 (see --help)" >&2; exit 1 ;;
     *)  [[ -z "$HOST" ]] || { echo "Unexpected argument: $1" >&2; exit 1; }; HOST="$1"; shift ;;
   esac

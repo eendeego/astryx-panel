@@ -27,7 +27,7 @@ while [[ $# -gt 0 ]]; do
     --max-frames)  MAX_FRAMES="$2"; shift 2 ;;
     --max-kb)      MAX_KB="$2"; shift 2 ;;
     --no-boot)     BOOT=0; shift ;;
-    -h|--help)     sed -n '2,18{s/^# \{0,1\}//p}' "$0"; exit 0 ;;
+    -h|--help)     sed -n '2,18{s/^# \{0,1\}//p;}' "$0"; exit 0 ;;
     *) echo "Unknown option: $1 (see --help)" >&2; exit 1 ;;
   esac
 done

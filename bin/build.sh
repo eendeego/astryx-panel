@@ -29,7 +29,7 @@ while [[ $# -gt 0 ]]; do
     -u|--upload) UPLOAD=1; shift ;;
     -p|--port)   PORT="$2"; shift 2 ;;
     -c|--clean)  CLEAN=1; shift ;;
-    -h|--help)   sed -n '2,9{s/^# \{0,1\}//p}' "$0"; exit 0 ;;
+    -h|--help)   sed -n '2,9{s/^# \{0,1\}//p;}' "$0"; exit 0 ;;
     *) echo "Unknown option: $1 (see --help)" >&2; exit 1 ;;
   esac
 done
