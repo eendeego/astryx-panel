@@ -12,11 +12,14 @@ WLED source itself is a separate checkout under `WLED/` and is not vendored here
 astryx-panel/                  # this repo
 ├── bin/build.sh               # build (+ upload via PlatformIO)
 ├── bin/flash.sh               # full esptool flash: bootloader + partitions + firmware
-├── bin/provision.sh           # push config/cfg.json (panel + 2D layout) to a running board
+├── bin/provision.sh           # push cfg.json, GIFs and presets to a running board
+├── bin/gen-presets.sh         # build config/presets.json from config/gifs/*.gif
 ├── bin/check-env.sh           # prerequisite checker
 ├── config/platformio_override.ini  # board config (source of truth)
 ├── config/wled.conf           # WLED release to build (WLED_VERSION)
-├── config/cfg.json            # partial WLED config: HUB75 bus + 2D matrix layout
+├── config/cfg.json            # partial WLED config: HUB75 bus + 2D matrix layout, boot preset
+├── config/gifs/               # animated GIFs to play on the panel (drop files here)
+├── config/presets.json        # generated: one Image preset per GIF + playlist
 ├── WLED/                      # upstream WLED checkout (git-ignored, separate repo)
 │   └── platformio_override.ini -> ../config/platformio_override.ini
 ├── README.md
@@ -109,6 +112,28 @@ bin/provision.sh -n <board-ip>       # merge only, reboot later yourself
 The default merge mode is safe on an already-configured board: WLED merges
 the file field by field. After the reboot the script reads `/json/cfg` back
 and reports any difference from the file.
+
+## Presets and animated GIFs
+
+WLED plays a GIF from its filesystem through the **Image** effect; the
+segment *name* is the filename. The repo keeps the GIFs in `config/gifs/`
+and generates the presets from them:
+
+```bash
+bin/gen-presets.sh [-d 10] [-b 128] [-s 128]   # validate GIFs, write config/presets.json,
+                                                # set the playlist as boot preset in cfg.json
+bin/provision.sh [<board-ip>]                   # uploads GIFs + presets.json, then the panel config
+bin/provision.sh -g <board-ip>                  # GIFs + presets only (no cfg change, no reboot)
+bin/provision.sh -v <board-ip>                  # verify only: compare the board with the repo
+```
+
+Rules the generator enforces (from WLED 16.0.1's loader): a GIF must not be
+larger than the panel (smaller ones are scaled up by an integer factor),
+filenames including `.gif` are limited to 32 characters, and only one GIF
+plays at a time — hence one full-panel Image preset per GIF plus an
+"All GIFs" playlist (`-d` seconds per GIF). `gen-presets.sh` overwrites
+`config/presets.json`, so make preset changes by re-running it, and rebuild
+whenever GIFs are added or removed.
 
 ## Known quirks
 

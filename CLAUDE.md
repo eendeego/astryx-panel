@@ -54,6 +54,13 @@ something else. Do not vendor WLED code into this repo.
   replaces `cfg.json` via `/upload` (fresh boards only). The file describes a
   64×64 HUB75 panel plus the status NeoPixel (WS2812 on GPIO 4); keep
   `pin[0..1]`, `panels[0].w/h`, `len` and `total` consistent when changing it.
+- GIFs: `config/gifs/*.gif` → `bin/gen-presets.sh` writes `config/presets.json`
+  (one Image-effect preset per GIF, `fx` 53, segment name = filename, plus an
+  "All GIFs" playlist set as boot preset `def.ps` in cfg.json). `provision.sh`
+  uploads GIFs and presets.json via `/upload` before the panel config, and
+  verifies by reading files back (`-g` presets only, `-v` verify only).
+  WLED limits: GIF ≤ panel size (no downscaling), name ≤ 32 chars, one GIF
+  playing at a time. `gen-presets.sh` overwrites presets.json.
 
 ## Toolchain
 
