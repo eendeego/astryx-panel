@@ -20,6 +20,7 @@ astryx-panel/                  # this repo
 ├── config/cfg.json            # partial WLED config: HUB75 bus + 2D matrix layout, boot preset
 ├── config/gifs/               # animated GIFs to play on the panel (drop files here)
 ├── config/presets.json        # generated: one Image preset per GIF + playlist
+├── gfx/                       # scripts that render the GIFs/images in config/gifs/
 ├── WLED/                      # upstream WLED checkout (git-ignored, separate repo)
 │   └── platformio_override.ini -> ../config/platformio_override.ini
 ├── README.md
@@ -134,6 +135,12 @@ plays at a time — hence one full-panel Image preset per GIF plus an
 "All GIFs" playlist (`-d` seconds per GIF). `gen-presets.sh` overwrites
 `config/presets.json`, so make preset changes by re-running it, and rebuild
 whenever GIFs are added or removed.
+
+GIFs and other panel images that are generated rather than downloaded come
+from scripts in `gfx/` (one script per animation or image family), which write
+their output into `config/gifs/`. Re-run `bin/gen-presets.sh` afterwards so the
+presets match. Keep `gfx/` for content generation only — board tooling stays in
+`bin/`.
 
 ## Known quirks
 

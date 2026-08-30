@@ -61,6 +61,9 @@ something else. Do not vendor WLED code into this repo.
   verifies by reading files back (`-g` presets only, `-v` verify only).
   WLED limits: GIF ≤ panel size (no downscaling), name ≤ 32 chars, one GIF
   playing at a time. `gen-presets.sh` overwrites presets.json.
+- `gfx/` holds scripts that *generate* GIFs and other panel images, writing
+  into `config/gifs/`; one script per animation/image family. Board tooling
+  belongs in `bin/`, not here. After generating, re-run `bin/gen-presets.sh`.
 
 ## Toolchain
 
