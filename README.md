@@ -4,22 +4,25 @@ Custom [WLED](https://github.com/wled/WLED) firmware build for the
 **Adafruit MatrixPortal ESP32-S3** driving a HUB75 LED matrix panel.
 
 This repository holds the build tooling and board-specific configuration; the
-WLED source itself lives in a sibling checkout and is not vendored here.
+WLED source itself is a separate checkout under `WLED/` and is not vendored here.
 
 ## Layout
 
 ```
-astryx-panel/       # this repo
-├── bin/build.sh    # build/flash script
-├── platformio_override.ini  # board config (symlinked into ../WLED)
+astryx-panel/                  # this repo
+├── bin/build.sh               # build/flash script
+├── bin/check-env.sh           # prerequisite checker
+├── config/platformio_override.ini  # board config (source of truth)
+├── WLED/                      # upstream WLED checkout (git-ignored, separate repo)
+│   └── platformio_override.ini -> ../config/platformio_override.ini
 ├── README.md
-└── CLAUDE.md       # context for Claude Code sessions
-../WLED/            # upstream WLED checkout (V5 dev branch)
+└── CLAUDE.md                  # context for Claude Code sessions
 ```
 
-The WLED checkout finds the override file through a symlink:
-`../WLED/platformio_override.ini -> ../astryx-panel/platformio_override.ini`
-(recreate with `ln -s ../astryx-panel/platformio_override.ini ../WLED/platformio_override.ini`).
+Get the WLED sources with `git clone https://github.com/wled/WLED WLED` from the
+repo root. WLED picks up the board config through the symlink shown above;
+`bin/build.sh` creates or repairs it automatically (manually:
+`ln -sfn ../config/platformio_override.ini WLED/platformio_override.ini`).
 
 ## Hardware
 
@@ -30,7 +33,7 @@ The WLED checkout finds the override file through a symlink:
 ## Build configuration
 
 The build uses a custom PlatformIO environment `matrixportal_s3_custom`
-(defined in `platformio_override.ini` in this repo) that extends
+(defined in `config/platformio_override.ini`) that extends
 WLED's stock `adafruit_matrixportal_esp32s3` env and bakes in the button and
 I2C pins above via `-D BTNPIN=6,7 -D BTNTYPE=2,2 -D I2CSDAPIN=16 -D I2CSCLPIN=17`.
 

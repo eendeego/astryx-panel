@@ -13,8 +13,8 @@ QUIET=0
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 REPO_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
-REPO_NAME=$(basename "$REPO_DIR")
-WLED_DIR=$(cd "$REPO_DIR/.." && pwd)/WLED   # sibling checkout, see CLAUDE.md
+WLED_DIR=$REPO_DIR/WLED                     # in-repo checkout, git-ignored
+OVERRIDE_SRC=$REPO_DIR/config/platformio_override.ini
 WLED_REPO_URL=https://github.com/wled/WLED
 
 FAILURES=0
@@ -67,11 +67,15 @@ else
        "git clone $WLED_REPO_URL \"$WLED_DIR\""
 fi
 
-if [ -f "$WLED_DIR/platformio_override.ini" ]; then
-  pass "platformio_override.ini present in WLED checkout"
+OVERRIDE_FIX="ln -sfn ../config/platformio_override.ini \"$WLED_DIR/platformio_override.ini\""
+if [ "$WLED_DIR/platformio_override.ini" -ef "$OVERRIDE_SRC" ]; then
+  pass "WLED/platformio_override.ini -> config/platformio_override.ini"
+elif [ -e "$WLED_DIR/platformio_override.ini" ] && [ ! -L "$WLED_DIR/platformio_override.ini" ]; then
+  warn "WLED/platformio_override.ini is a regular file, not linked to config/ — tracked board config unused" \
+       "mv \"$WLED_DIR/platformio_override.ini\" \"$WLED_DIR/platformio_override.ini.bak\" && $OVERRIDE_FIX"
 else
-  warn "platformio_override.ini missing in WLED checkout — custom envs unavailable" \
-       "ln -s ../$REPO_NAME/platformio_override.ini \"$WLED_DIR/platformio_override.ini\""
+  warn "WLED/platformio_override.ini symlink missing or stale — custom envs unavailable (bin/build.sh also repairs this)" \
+       "$OVERRIDE_FIX"
 fi
 
 # --- Node.js ------------------------------------------------------------------

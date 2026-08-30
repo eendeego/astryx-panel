@@ -6,15 +6,17 @@ Context for Claude Code sessions working on astryx-panel.
 
 A custom WLED firmware build targeting the **Adafruit MatrixPortal ESP32-S3**
 with a HUB75 matrix panel. This repo holds tooling and configuration only;
-WLED sources live in the sibling checkout `../WLED` (WLED V5 dev,
-`17.0.0-devV5`). Do not vendor WLED code into this repo.
+WLED sources live in the git-ignored checkout `WLED/` at the repo root
+(clone of https://github.com/wled/WLED, WLED V5 dev, `17.0.0-devV5`). Do not
+vendor WLED code into this repo.
 
 ## Key facts
 
 - PlatformIO env: `matrixportal_s3_custom`, defined in
-  `platformio_override.ini` (tracked in this repo, the board config source of
-  truth; the WLED checkout sees it via the symlink
-  `../WLED/platformio_override.ini -> ../astryx-panel/platformio_override.ini`).
+  `config/platformio_override.ini` (tracked in this repo, the board config
+  source of truth; the WLED checkout sees it via the symlink
+  `WLED/platformio_override.ini -> ../config/platformio_override.ini`, which
+  `bin/build.sh` creates/repairs automatically).
 - It extends WLED's stock `adafruit_matrixportal_esp32s3` env
   (`platformio.ini` in the WLED repo), which already handles: HUB75 driver
   (ESP32-HUB75-MatrixPanel-DMA, pinned), board pin mapping via
@@ -28,7 +30,7 @@ WLED sources live in the sibling checkout `../WLED` (WLED V5 dev,
 
 ## Building
 
-- Script: `bin/build.sh`. Options:
+- Script: `bin/build.sh` (runs from `WLED/`). Options:
   `-e <env>` (default `adafruit_matrixportal_esp32s3`), `-u` upload,
   `-p <port>`, `-c` clean.
 - Build sequence it implements: `npm ci` (once) → `npm run build` (generates
@@ -43,7 +45,7 @@ WLED sources live in the sibling checkout `../WLED` (WLED V5 dev,
 ## Toolchain
 
 - Node ≥ 20 (fnm), Python 3.12, PlatformIO 6.1.19 (versions pinned by
-  `../WLED/.nvmrc` and `../WLED/requirements.txt`).
+  `WLED/.nvmrc` and `WLED/requirements.txt`).
 - Espressif32 and espressif8266 platforms are pre-cached in `~/.platformio`.
 - Provisioning is managed by an external Ansible playbook (infra agent).
 
@@ -52,4 +54,4 @@ WLED sources live in the sibling checkout `../WLED` (WLED V5 dev,
 - Keep changes out of the WLED checkout except for git-ignored files
   (`platformio_override.ini`, `wled00/my_config.h`); upstream files stay
   pristine so the checkout can track upstream.
-- Prefer `platformio_override.ini` build flags over editing `my_config.h`.
+- Prefer `config/platformio_override.ini` build flags over editing `my_config.h`.

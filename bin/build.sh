@@ -9,7 +9,11 @@
 #   -h, --help          Show this help
 
 set -euo pipefail
-cd "$(dirname "$0")/../../WLED"
+
+REPO_DIR=$(cd "$(dirname "$0")/.." && pwd)
+WLED_DIR=$REPO_DIR/WLED                       # upstream checkout, git-ignored here
+OVERRIDE_SRC=$REPO_DIR/config/platformio_override.ini
+OVERRIDE_LINK=$WLED_DIR/platformio_override.ini
 
 ENV_NAME="adafruit_matrixportal_esp32s3"
 UPLOAD=0
@@ -27,9 +31,30 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [[ ! -f "$WLED_DIR/platformio.ini" ]]; then
+  echo "ERROR: WLED checkout not found at $WLED_DIR" >&2
+  echo "       run bin/check-env.sh for the fix (git clone https://github.com/wled/WLED \"$WLED_DIR\")" >&2
+  exit 1
+fi
+
+# The tracked config/platformio_override.ini is the board-config source of
+# truth; WLED only sees it through this (untracked) symlink, so keep it right.
+if [[ -L "$OVERRIDE_LINK" || ! -e "$OVERRIDE_LINK" ]]; then
+  if [[ ! "$OVERRIDE_LINK" -ef "$OVERRIDE_SRC" ]]; then
+    ln -sfn ../config/platformio_override.ini "$OVERRIDE_LINK"
+    echo "Linked $OVERRIDE_LINK -> ../config/platformio_override.ini"
+  fi
+elif [[ ! "$OVERRIDE_LINK" -ef "$OVERRIDE_SRC" ]]; then
+  echo "WARNING: $OVERRIDE_LINK is a regular file, not a link to config/platformio_override.ini;" >&2
+  echo "         the tracked board config is NOT being used." >&2
+fi
+
+cd "$WLED_DIR"
+
 # Make sure node/npm and pio are resolvable in non-interactive shells.
 if ! command -v npm >/dev/null 2>&1; then
-  for d in "$HOME"/.local/share/fnm/node-versions/*/installation/bin; do
+  for d in "$HOME"/.local/share/fnm/node-versions/*/installation/bin \
+           "$HOME/Library/Application Support/fnm"/node-versions/*/installation/bin; do
     [[ -x "$d/npm" ]] && PATH="$d:$PATH" && break
   done
 fi
@@ -37,21 +62,25 @@ if ! command -v pio >/dev/null 2>&1 && [[ -x "$HOME/.platformio/penv/bin/pio" ]]
   PATH="$HOME/.platformio/penv/bin:$PATH"
 fi
 export PATH
-command -v npm >/dev/null || { echo "ERROR: npm not found (need Node.js >= 20)" >&2; exit 1; }
-command -v pio >/dev/null || { echo "ERROR: pio not found (need PlatformIO)" >&2; exit 1; }
+command -v npm >/dev/null || { echo "ERROR: npm not found (need Node.js >= 20; run bin/check-env.sh)" >&2; exit 1; }
+command -v pio >/dev/null || { echo "ERROR: pio not found (need PlatformIO; run bin/check-env.sh)" >&2; exit 1; }
 
 # Web UI: install deps once, regenerate wled00/html_*.h / js_*.h (cdata.js skips if up to date).
 [[ -d node_modules ]] || npm ci
 npm run build
 
-[[ $CLEAN -eq 1 ]] && pio run -e "$ENV_NAME" -t clean
+if [[ $CLEAN -eq 1 ]]; then
+  pio run -e "$ENV_NAME" -t clean
+fi
 
 PIO_ARGS=(run -e "$ENV_NAME")
 if [[ $UPLOAD -eq 1 ]]; then
   PIO_ARGS+=(-t upload)
   [[ -n "$PORT" ]] && PIO_ARGS+=(--upload-port "$PORT")
+elif [[ -n "$PORT" ]]; then
+  echo "WARNING: --port given without --upload; ignoring it" >&2
 fi
 pio "${PIO_ARGS[@]}"
 
 echo
-echo "Done. Firmware: .pio/build/$ENV_NAME/firmware.bin"
+echo "Done. Firmware: WLED/.pio/build/$ENV_NAME/firmware.bin"
