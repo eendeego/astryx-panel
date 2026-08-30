@@ -12,9 +12,11 @@ WLED source itself is a separate checkout under `WLED/` and is not vendored here
 astryx-panel/                  # this repo
 ├── bin/build.sh               # build (+ upload via PlatformIO)
 ├── bin/flash.sh               # full esptool flash: bootloader + partitions + firmware
+├── bin/provision.sh           # push config/cfg.json (panel + 2D layout) to a running board
 ├── bin/check-env.sh           # prerequisite checker
 ├── config/platformio_override.ini  # board config (source of truth)
 ├── config/wled.conf           # WLED release to build (WLED_VERSION)
+├── config/cfg.json            # partial WLED config: HUB75 bus + 2D matrix layout
 ├── WLED/                      # upstream WLED checkout (git-ignored, separate repo)
 │   └── platformio_override.ini -> ../config/platformio_override.ini
 ├── README.md
@@ -85,6 +87,27 @@ re-run the command. The port is auto-detected when exactly one candidate exists;
 `-p <port>`. With `-f` the boot files WLED's web installer uses are downloaded
 once into `.cache/boot/` (git-ignored); `-d` forces that source for local
 builds too. `esptool` comes from PATH or from PlatformIO's bundled copy.
+
+## Provisioning the panel config
+
+Build flags can seed most defaults (buttons, I2C, names, WiFi …), but not the
+HUB75 output bus or the 2D matrix layout — WLED 16.0.1 has no compile-time
+default for the matrix, and its first-boot code mangles HUB75 bus parameters.
+Those live in `config/cfg.json`, a *partial* `cfg.json` — one 64×64 HUB75
+panel plus the board's status NeoPixel (1× WS2812 on GPIO 4) and ESP-NOW
+enabled; for another panel edit `pin[0..1]`, `panels[0].w/h` and `len`/`total`
+together — that `bin/provision.sh` pushes to a running board:
+
+```bash
+bin/provision.sh <board-ip>          # merge via /json/cfg, save, reboot, verify
+bin/provision.sh -u <board-ip>       # fresh boards: replace cfg.json wholesale (board reboots itself)
+bin/provision.sh -P 1234 <board-ip>  # board with a settings PIN
+bin/provision.sh -n <board-ip>       # merge only, reboot later yourself
+```
+
+The default merge mode is safe on an already-configured board: WLED merges
+the file field by field. After the reboot the script reads `/json/cfg` back
+and reports any difference from the file.
 
 ## Known quirks
 

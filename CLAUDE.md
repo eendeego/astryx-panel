@@ -48,6 +48,12 @@ something else. Do not vendor WLED code into this repo.
   unless `-n`). Without `-f` it uses the boot files from the local PlatformIO
   build; with `-f <release.bin>` (or `-d`) it downloads WLED-WebInstaller's
   boot files into git-ignored `.cache/boot/`. `--dry-run` prints the command.
+- `bin/provision.sh <host>` pushes `config/cfg.json` (partial config: HUB75
+  bus + 2D matrix layout — the parts build flags cannot bake) to a running
+  board via `POST /json/cfg` (merge + save), reboots, and verifies. `-u`
+  replaces `cfg.json` via `/upload` (fresh boards only). The file describes a
+  64×64 HUB75 panel plus the status NeoPixel (WS2812 on GPIO 4); keep
+  `pin[0..1]`, `panels[0].w/h`, `len` and `total` consistent when changing it.
 
 ## Toolchain
 

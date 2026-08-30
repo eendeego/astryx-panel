@@ -1,0 +1,38 @@
+{
+  "nw": {
+    "espnow": true
+  },
+  "hw": {
+    "led": {
+    "total": 4096,
+    "maxpwr": 0,
+    "matrix": {
+      "mpc": 1,
+      "panels": [
+        {"x": 0, "y": 0, "h": 64, "w": 64}
+      ]
+    },
+    "ins": [
+        {
+          "start": 0,
+          "len": 4096,
+          "pin": [64, 64, 1, 1, 1],
+          "order": 1,
+          "rev": false,
+          "skip": 0,
+          "type": 65
+        },
+        {
+          "start": 1,
+          "len": 1,
+          "pin": [4],
+          "order": 0,
+          "rev": false,
+          "skip": 0,
+          "type": 22,
+          "ref": false
+        }
+      ]
+    }
+  }
+}
