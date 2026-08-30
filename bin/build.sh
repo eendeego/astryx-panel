@@ -79,3 +79,6 @@ pio "${PIO_ARGS[@]}"
 
 echo
 echo "Done. Firmware: WLED/.pio/build/$ENV_NAME/firmware.bin"
+if [[ $UPLOAD -eq 0 ]]; then
+  echo "To flash it: bin/flash.sh -e $ENV_NAME   (from-scratch install; or bin/build.sh -u to upload to a board already running WLED)"
+fi
