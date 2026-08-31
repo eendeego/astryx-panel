@@ -24,6 +24,7 @@ astryx-panel/                  # this repo
 ├── config/presets.json        # generated: one Image preset per GIF + playlist
 ├── gfx/                       # scripts that render the GIFs/images in config/gifs/
 │   ├── Makefile               # what to rebuild, and from what
+│   ├── retime.py              # set a finished GIF's running time exactly
 │   ├── raw/                   # versioned SVG sources
 │   └── out/                   # intermediates (git-ignored)
 ├── WLED/                      # upstream WLED checkout (git-ignored, separate repo)
@@ -223,6 +224,15 @@ Requirements, none of which the firmware build needs:
 
 Every script takes `--help`, which lists its options and their defaults.
 
+**Every animation runs for exactly 5 seconds.** A playlist slot then holds a
+whole number of passes instead of cutting one off part-way. At 4cs a frame that
+is 125 frames, and the flags in `gfx/Makefile` are chosen to land there — 80
+frames of flight plus 45 held for an assembly, 50 each way plus 27 held for the
+offsets. A marquee's frame count is its geometry, one frame per pixel of travel,
+so it cannot be dialled to 125; `gfx/retime.py` scales its delays instead, which
+leaves the frames untouched and the pauses in the same proportion. `SECONDS` in
+the Makefile is the one place the length is set.
+
 ### Regenerating everything
 
 ```sh
@@ -269,13 +279,20 @@ Flat marquee:
 
 ```sh
 gfx/make-marquee.sh gfx/out/astryx-word.png config/gifs/astryx-word.gif
+gfx/retime.py -t 5 config/gifs/astryx-word.gif
 ```
 
 Cylindrical marquee:
 
 ```sh
 gfx/make-marquee.sh -c gfx/out/astryx-word.png config/gifs/astryx-word-c.gif
+gfx/retime.py -t 5 config/gifs/astryx-word-c.gif
 ```
+
+The travel is 64 + the image width for the flat one and the drum's visible arc
+plus the image width for the cylinder — 128 and 165 frames, 5.12 s and 6.6 s at
+4cs. `retime.py` brings both to exactly 5 s by scaling their delays to 3-4cs,
+which is 10 ms of difference between frames at 25 fps.
 
 #### Letters
 
@@ -302,7 +319,7 @@ it the wordmark viewBox instead, so it renders in place. Either way
 #### Assembling the word
 
 ```sh
-gfx/make-assemble.py
+gfx/make-assemble.py -f 60 --stagger 4 --hold 45
 ```
 
 Writes `config/gifs/astryx-assemble.gif`: the six letters fly in from the
@@ -311,19 +328,20 @@ held before the loop restarts. Reads `gfx/out/letters/`, so run
 `gfx/split-letters.py` first — or just `gfx/generate-all.sh`, which sequences
 them.
 
-Defaults give 3.6 seconds: 45 frames of flight, 45 held, at 4cs a frame. The
-knobs worth reaching for are `--sides` (which edge each letter enters from,
-cycled — `ltrb` by default), `--stagger` (frames between one letter setting off
-and the next), `--overshoot` (how far a letter overruns before settling), and
-`--hold`.
+The flags above give exactly 5 seconds: 60 frames of flight staggered 4 apart
+across six letters is 80 frames of travel, plus 45 held, at 4cs a frame. Bare
+defaults give 3.6 s. The knobs worth reaching for are `--sides` (which edge each
+letter enters from, cycled — `ltrb` by default), `--stagger` (frames between one
+letter setting off and the next), `--overshoot` (how far a letter overruns
+before settling), and `--hold`.
 
 ##### Diagonal variations
 
 `--rotate` stands the whole word at an angle, letters turned with it:
 
 ```sh
-gfx/make-assemble.py --rotate  45 gfx/out/letters config/gifs/astryx-assemble+45.gif
-gfx/make-assemble.py --rotate -45 gfx/out/letters config/gifs/astryx-assemble-45.gif
+gfx/make-assemble.py --rotate  45 -f 60 --stagger 4 --hold 45 gfx/out/letters config/gifs/astryx-assemble+45.gif
+gfx/make-assemble.py --rotate -45 -f 60 --stagger 4 --hold 45 gfx/out/letters config/gifs/astryx-assemble-45.gif
 ```
 
 A diagonal word is also a **bigger** word. The wordmark is 5.3:1, so lying flat
@@ -346,7 +364,7 @@ It composes with `--rotate`.
 #### Offsetting the logo mark
 
 ```sh
-gfx/make-offset.py -d both -f 60 --hold 30  # -> config/gifs/astryx-inout.gif
+gfx/make-offset.py -d both -f 50 --hold 27  # -> config/gifs/astryx-inout.gif
 gfx/make-offset.py -d in                    # -> config/gifs/astryx-inward.gif
 gfx/make-offset.py -d out                   # -> config/gifs/astryx-outward.gif
 ```
@@ -357,10 +375,10 @@ run in reverse time**, holds included — the lobes appear out of an empty panel
 close up into the mark, and it is held.
 
 `-d both` is the one the Makefile builds: the two runs in sequence, the mark
-eaten away and grown back in a single loop, over 60 frames of travel and a
-30-frame hold — 5.9 s, twice the length the defaults give. It runs at 4cs a
-frame like everything else here rather than at half the frame rate, which is
-why the frame count doubled instead of the delay. Neither turn repeats a frame — the
+eaten away and grown back in a single loop: 50 frames each way, neither the
+turn nor the loop point drawn twice, plus 27 held — 125 frames, 5 s. It runs at
+4cs a frame like everything else here, so a longer animation means more frames
+rather than a longer delay. Neither turn repeats a frame — the
 empty panel is not drawn twice at the bottom of the run, and the whole mark is
 not drawn again at the end, where the loop is about to hold on it anyway. `in`
 and `out` still work if you want them apart, and they cut together back to back.

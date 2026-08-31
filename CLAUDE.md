@@ -91,6 +91,10 @@ something else. Do not vendor WLED code into this repo.
   verifies by reading files back (`-g` presets only, `-v` verify only).
   WLED limits: GIF ≤ panel size (no downscaling), name ≤ 32 chars, one GIF
   playing at a time. `gen-presets.sh` overwrites presets.json.
+- Every GIF in `config/gifs/` runs exactly 5 s (`SECONDS` in `gfx/Makefile`),
+  so a 10 s playlist slot holds two whole passes. Frame counts are chosen to
+  land there at 4cs; `gfx/retime.py` scales the delays of the marquees, whose
+  frame count is fixed by their geometry.
 - `gfx/` holds the scripts that *generate* GIFs and other panel images from
   the SVG sources in `gfx/raw/`, writing finished GIFs into `config/gifs/` and
   intermediates into git-ignored `gfx/out/`. `gfx/generate-all.sh` (a wrapper

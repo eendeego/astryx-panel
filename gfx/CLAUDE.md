@@ -36,9 +36,9 @@ gfx/make-marquee.sh -c gfx/out/astryx-word.png config/gifs/astryx-word-c.gif   #
 
 python3 gfx/make-gap.py -t 255 -s 64 -b white   # raw/astryx.svg -> config/2d-gaps.json
 python3 gfx/split-letters.py                    # -> out/letters/NN-<letter>.svg
-python3 gfx/make-assemble.py                    # -> config/gifs/astryx-assemble.gif
-python3 gfx/make-offset.py -d in                # -> config/gifs/astryx-inward.gif
-python3 gfx/make-offset.py -d out               # -> config/gifs/astryx-outward.gif
+python3 gfx/make-assemble.py -f 60 --stagger 4 --hold 45   # -> config/gifs/astryx-assemble.gif
+python3 gfx/make-offset.py -d both -f 50 --hold 27         # -> config/gifs/astryx-inout.gif
+python3 gfx/retime.py -t 5 config/gifs/astryx-word.gif     # marquees only; the rest land on 5s
 ```
 
 These invocations exist in three places — the root `README.md`, the `Makefile`,
@@ -70,6 +70,19 @@ the firmware. Both are versioned. The wordmark PNG and the split letters are
 workings and stay in `out/`, which is gitignored. `make clean` removes `out/`
 and what the Makefile wrote into `config/`, never the whole of `config/gifs/` —
 GIFs also arrive there by hand.
+
+**Every animation runs exactly `SECONDS` (5) long**, so a playlist slot holds
+whole passes. At 4cs a frame that is 125 frames, and the flags in the Makefile
+are arithmetic to reach it: an assembly is `-f 60 --stagger 4` (60 + 4×5 = 80
+of travel) `--hold 45`; the offset loop is `-f 50 --hold 27` (27 + 2×50 − 2).
+Change a flag and the count moves, so check the summary line still says 5.0s.
+
+A marquee cannot be dialled: its frame count is the travel in pixels, 128 flat
+and 165 on the drum. `retime.py` scales those delays to hit the target exactly
+— scales, not equalizes, because a held frame is stored once with a long delay
+and spreading evenly would flatten it. It rewrites the frames in their own
+palettes, so nothing is requantized, and it leaves a file that is already to
+time alone.
 
 **64 is hardcoded in three places** and must agree: `CANVAS_W`/`CANVAS_H` in
 `make-marquee.sh`, the `--size` default in `make-gap.py`, and `SIZE` in the

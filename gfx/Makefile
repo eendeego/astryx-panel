@@ -26,9 +26,16 @@ GAP      := make-gap.py
 SPLIT    := split-letters.py
 ASSEMBLE := make-assemble.py
 OFFSET   := make-offset.py
+RETIME   := retime.py
 
 # Panel edge, in pixels. Also hardcoded as the canvas size in make-marquee.sh.
 SIZE := 64
+
+# Every animation runs for exactly this long, so a playlist slot holds a
+# whole number of passes. At 4cs a frame that is 125 frames, which is what
+# the flag arithmetic below is for; a marquee's frame count is its geometry
+# instead, one frame per pixel of travel, so retime.py adjusts its delays.
+SECONDS := 5
 
 # The same fly-in, with the word standing at the angle each target
 # carries below.
@@ -63,11 +70,13 @@ all: $(TARGETS)
 $(OUT)/astryx-word.png: $(RAW)/astryx-word.svg Makefile | $(OUT)
 	rsvg-convert -o $@ -w $(SIZE) -a $<
 
-$(GIFS)/astryx-word.gif: $(OUT)/astryx-word.png $(MARQUEE) Makefile | $(GIFS)
+$(GIFS)/astryx-word.gif: $(OUT)/astryx-word.png $(MARQUEE) $(RETIME) Makefile | $(GIFS)
 	./$(MARQUEE) $< $@
+	python3 $(RETIME) -q -t $(SECONDS) $@
 
-$(GIFS)/astryx-word-c.gif: $(OUT)/astryx-word.png $(MARQUEE) Makefile | $(GIFS)
+$(GIFS)/astryx-word-c.gif: $(OUT)/astryx-word.png $(MARQUEE) $(RETIME) Makefile | $(GIFS)
 	./$(MARQUEE) -c $< $@
+	python3 $(RETIME) -q -t $(SECONDS) $@
 
 # -n -t 255 -b white is the combination verified on the panel: -b white
 # renders the mark black on white, so the shape sits at 0 coverage, and -n
@@ -87,15 +96,23 @@ $(OUT)/letters/letters.json: $(RAW)/astryx-word.svg $(SPLIT) Makefile | $(OUT)
 # stands at the angle each target carries. On a diagonal the word may be
 # larger, since it then spans the panel's diagonal rather than its edge,
 # and make-assemble.py sizes it to fit whatever angle it is given.
+#
+# 60 frames of flight staggered 4 apart over six letters is 80 frames of
+# travel, and 45 held makes 125 — five seconds at 4cs, so the retime below
+# has nothing to do.
 $(GIFS)/astryx-assemble.gif:     ROTATE := 0
 $(GIFS)/astryx-assemble+45.gif:  ROTATE := 45
 $(GIFS)/astryx-assemble-45.gif:  ROTATE := -45
 
-$(ASSEMBLIES): $(OUT)/letters/letters.json $(ASSEMBLE) Makefile | $(GIFS)
-	python3 $(ASSEMBLE) --rotate $(ROTATE) $(dir $<) $@
+$(ASSEMBLIES): $(OUT)/letters/letters.json $(ASSEMBLE) $(RETIME) Makefile | $(GIFS)
+	python3 $(ASSEMBLE) --rotate $(ROTATE) -f 60 --stagger 4 --hold 45 $(dir $<) $@
+	python3 $(RETIME) -q -t $(SECONDS) $@
 
-$(OFFSET_GIF): $(RAW)/astryx.svg $(OFFSET) Makefile | $(GIFS)
-	python3 $(OFFSET) -d both -f 60 --hold 30 $< $@
+# 50 frames each way with the turn and the loop point not drawn twice is
+# 98, and 27 held makes 125 — five seconds, as above.
+$(OFFSET_GIF): $(RAW)/astryx.svg $(OFFSET) $(RETIME) Makefile | $(GIFS)
+	python3 $(OFFSET) -d both -f 50 --hold 27 $< $@
+	python3 $(RETIME) -q -t $(SECONDS) $@
 
 $(OUT) $(GIFS):
 	mkdir -p $@

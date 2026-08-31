@@ -4,7 +4,7 @@
 # GIF preview
 
 Every animation in `config/gifs/`, which is what `bin/provision.sh` puts on the
-panel and `bin/gen-presets.sh` turns into presets. 6 of them, 480 KB in total.
+panel and `bin/gen-presets.sh` turns into presets. 6 of them, 459 KB in total.
 
 All of them are 64×64, the panel's own size: WLED clips anything larger and
 scales smaller ones up by whole numbers only.
@@ -28,10 +28,10 @@ The word stands at 45°, which also makes it bigger: on the diagonal it has the
 panel's diagonal to fill, so it comes out 76×14 and the letters gain a fifth in
 height.
 
-`45 frames · 3.6 s · 55.0 KB · preset 1`
+`77 frames · 5.0 s · 94.0 KB · preset 1`
 
 ```sh
-python3 make-assemble.py --rotate 45 out/letters/ ../config/gifs/astryx-assemble+45.gif
+python3 retime.py -q -t 5 ../config/gifs/astryx-assemble+45.gif
 ```
 
 ## astryx-assemble-45.gif
@@ -42,10 +42,10 @@ python3 make-assemble.py --rotate 45 out/letters/ ../config/gifs/astryx-assemble
 The mirror of the one above, tilted the other way. The two cut together well
 back to back.
 
-`44 frames · 3.6 s · 53.0 KB · preset 2`
+`74 frames · 5.0 s · 88.2 KB · preset 2`
 
 ```sh
-python3 make-assemble.py --rotate -45 out/letters/ ../config/gifs/astryx-assemble-45.gif
+python3 retime.py -q -t 5 ../config/gifs/astryx-assemble-45.gif
 ```
 
 ## astryx-assemble.gif
@@ -55,10 +55,10 @@ python3 make-assemble.py --rotate -45 out/letters/ ../config/gifs/astryx-assembl
 
 Flat: the word lies across the panel, 64×12, letters about 12 px tall.
 
-`44 frames · 3.6 s · 46.8 KB · preset 3`
+`75 frames · 5.0 s · 78.9 KB · preset 3`
 
 ```sh
-python3 make-assemble.py --rotate 0 out/letters/ ../config/gifs/astryx-assemble.gif
+python3 retime.py -q -t 5 ../config/gifs/astryx-assemble.gif
 ```
 
 ## astryx-inout.gif
@@ -73,10 +73,10 @@ rather than guessed: the script bisects for the first distance that leaves the
 panel empty. Neither turn draws a frame twice, so the loop has no stutter at the
 empty panel or at the hold.
 
-`118 frames · 5.9 s · 86.9 KB · preset 4`
+`98 frames · 5.0 s · 72.4 KB · preset 4`
 
 ```sh
-python3 make-offset.py -d both -f 60 --hold 30 raw/astryx.svg ../config/gifs/astryx-inout.gif
+python3 retime.py -q -t 5 ../config/gifs/astryx-inout.gif
 ```
 
 ## astryx-word-c.gif
@@ -89,10 +89,10 @@ dim at the rim where the surface angles away, and move fastest across the
 middle. The longest of the set, because a full turn is the visible arc plus the
 word's own width.
 
-`165 frames · 6.6 s · 138.5 KB · preset 5`
+`161 frames · 5.0 s · 71.4 KB · preset 5`
 
 ```sh
-./make-marquee.sh -c out/astryx-word.png ../config/gifs/astryx-word-c.gif
+python3 retime.py -q -t 5 ../config/gifs/astryx-word-c.gif
 ```
 
 ## astryx-word.gif
@@ -104,10 +104,10 @@ The wordmark enters from the right, crosses, and leaves at the left before
 starting again — a flat marquee, no wrap-around. The word is rasterized to the
 panel's width, so it is 64×12 and rides the middle of the panel.
 
-`128 frames · 5.1 s · 99.5 KB · preset 6`
+`128 frames · 5.0 s · 54.4 KB · preset 6`
 
 ```sh
-./make-marquee.sh out/astryx-word.png ../config/gifs/astryx-word.gif
+python3 retime.py -q -t 5 ../config/gifs/astryx-word.gif
 ```
 
 ---
