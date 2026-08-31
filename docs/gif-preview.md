@@ -14,9 +14,15 @@ their delays summed, so the duration is the number that matters. The commands
 run from `gfx/`; `gfx/generate-all.sh <target>` runs one from anywhere, and
 `gfx/generate-all.sh` rebuilds whatever is stale.
 
+Each one is shown twice: **as generated** on the left, and **behind the mask**
+on the right, where the 670 pixels `config/2d-gaps.json` switches off are
+painted `#c0c0c0` — what the logo-shaped cut-out leaves visible. Those
+copies live in `docs/masked/` and are rewritten by this script.
+
 ## astryx-assemble+45.gif
 
 <img src="../config/gifs/astryx-assemble+45.gif" width="192" alt="The same assembly with the word standing at 45 degrees">
+<img src="masked/astryx-assemble+45.gif" width="192" alt="The same assembly with the word standing at 45 degrees, behind the mask">
 
 The word stands at 45°, which also makes it bigger: on the diagonal it has the
 panel's diagonal to fill, so it comes out 76×14 and the letters gain a fifth in
@@ -31,6 +37,7 @@ python3 make-assemble.py --rotate 45 out/letters/ ../config/gifs/astryx-assemble
 ## astryx-assemble-45.gif
 
 <img src="../config/gifs/astryx-assemble-45.gif" width="192" alt="The same assembly tilted 45 degrees the other way">
+<img src="masked/astryx-assemble-45.gif" width="192" alt="The same assembly tilted 45 degrees the other way, behind the mask">
 
 The mirror of the one above, tilted the other way. The two cut together well
 back to back.
@@ -44,6 +51,7 @@ python3 make-assemble.py --rotate -45 out/letters/ ../config/gifs/astryx-assembl
 ## astryx-assemble.gif
 
 <img src="../config/gifs/astryx-assemble.gif" width="192" alt="Letters flying in from the edges to form the horizontal wordmark">
+<img src="masked/astryx-assemble.gif" width="192" alt="Letters flying in from the edges to form the horizontal wordmark, behind the mask">
 
 Flat: the word lies across the panel, 64×12, letters about 12 px tall.
 
@@ -56,6 +64,7 @@ python3 make-assemble.py --rotate 0 out/letters/ ../config/gifs/astryx-assemble.
 ## astryx-inward.gif
 
 <img src="../config/gifs/astryx-inward.gif" width="192" alt="The logo mark thinning until its four lobes come apart and vanish">
+<img src="masked/astryx-inward.gif" width="192" alt="The logo mark thinning until its four lobes come apart and vanish, behind the mask">
 
 The mark is held, then its outline steps inward: it thins, comes apart into its
 four lobes, and they dwindle to nothing. 14.06 px of travel, which is measured
@@ -71,6 +80,7 @@ python3 make-offset.py -d in raw/astryx.svg ../config/gifs/astryx-inward.gif
 ## astryx-outward.gif
 
 <img src="../config/gifs/astryx-outward.gif" width="192" alt="Four lobes appearing from an empty panel and closing up into the logo mark">
+<img src="masked/astryx-outward.gif" width="192" alt="Four lobes appearing from an empty panel and closing up into the logo mark, behind the mask">
 
 The same run in reverse time: lobes appear out of an empty panel, swell, close
 up into the mark, and it is held.
@@ -84,6 +94,7 @@ python3 make-offset.py -d out raw/astryx.svg ../config/gifs/astryx-outward.gif
 ## astryx-word-c.gif
 
 <img src="../config/gifs/astryx-word-c.gif" width="192" alt="The wordmark wrapped around a rotating drum, foreshortening at the edges">
+<img src="masked/astryx-word-c.gif" width="192" alt="The wordmark wrapped around a rotating drum, foreshortening at the edges, behind the mask">
 
 The same word on the surface of a drum turning towards you: columns bunch up and
 dim at the rim where the surface angles away, and move fastest across the
@@ -99,6 +110,7 @@ word's own width.
 ## astryx-word.gif
 
 <img src="../config/gifs/astryx-word.gif" width="192" alt="The Astryx wordmark scrolling right to left across the panel">
+<img src="masked/astryx-word.gif" width="192" alt="The Astryx wordmark scrolling right to left across the panel, behind the mask">
 
 The wordmark enters from the right, crosses, and leaves at the left before
 starting again — a flat marquee, no wrap-around. The word is rasterized to the

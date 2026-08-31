@@ -3,10 +3,18 @@
 # GIF showing it, with its geometry, frame count, duration, size, preset number
 # and the command that rebuilds it.
 #
+# Each GIF is shown twice: as generated, and as the panel wears it, with
+# config/2d-gaps.json applied so the LEDs the mask covers are painted flat.
+# Those masked copies are written to docs/masked/ and are versioned, since the
+# document has to render from the repository.
+#
 # Usage: ./gen-gif-preview.sh [options]
 #   -o, --output <file>  Write here instead of docs/gif-preview.md
 #   -w, --width <px>     Displayed width of each preview     (default: 192)
-#       --check          Write nothing; exit 1 if the file is out of date
+#   -m, --mask-color <c> Colour for pixels the gap file disables
+#                                                          (default: #c0c0c0)
+#       --no-mask        Skip the masked copies entirely
+#       --check          Write nothing; exit 1 if anything is out of date
 #   -h, --help           Show this help
 #
 # What a GIF *is* cannot be measured, so the description under each heading is
@@ -23,12 +31,16 @@ REPO_DIR=$(cd "$(dirname "$0")/.." && pwd)
 OUT=$REPO_DIR/docs/gif-preview.md
 WIDTH=192
 CHECK=0
+MASK_COLOR="#c0c0c0"
+DO_MASK=1
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -o|--output) OUT="$2"; shift 2 ;;
     -w|--width)  WIDTH="$2"; shift 2 ;;
+    -m|--mask-color) MASK_COLOR="$2"; shift 2 ;;
+    --no-mask)   DO_MASK=0; shift ;;
     --check)     CHECK=1; shift ;;
-    -h|--help)   sed -n '2,20{s/^# \{0,1\}//p;}' "$0"; exit 0 ;;
+    -h|--help)   sed -n '2,26{s/^# \{0,1\}//p;}' "$0"; exit 0 ;;
     *) echo "Unknown option: $1 (see --help)" >&2; exit 1 ;;
   esac
 done
@@ -36,14 +48,22 @@ done
 command -v python3 >/dev/null || { echo "ERROR: python3 is required" >&2; exit 1; }
 python3 -c 'import PIL' 2>/dev/null || { echo "ERROR: Pillow is required (pip install pillow)" >&2; exit 1; }
 
-python3 - "$REPO_DIR" "$OUT" "$WIDTH" "$CHECK" <<'GENPREVIEW'
-import json, os, re, subprocess, sys, textwrap
+python3 - "$REPO_DIR" "$OUT" "$WIDTH" "$CHECK" "$MASK_COLOR" "$DO_MASK" <<'GENPREVIEW'
+import io, json, os, re, subprocess, sys, textwrap
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageColor, ImageSequence
 
 repo, out_path, width, check = Path(sys.argv[1]), Path(sys.argv[2]), int(sys.argv[3]), sys.argv[4] == "1"
+do_mask = sys.argv[6] == "1"
+try:
+    mask_colour = ImageColor.getrgb(sys.argv[5])
+except ValueError as exc:
+    sys.exit(f"ERROR: --mask-color: {exc}")
 gif_dir = repo / "config" / "gifs"
+mask_dir = out_path.parent / "masked"
+mask_hex = "#%02x%02x%02x" % mask_colour
 STUB = "_No description yet — write one here; this script keeps it._"
+MASK_ALT = ", behind the mask"
 
 # --- what the board is being given -------------------------------------------
 cfg = json.loads((repo / "config" / "cfg.json").read_text())
@@ -64,6 +84,65 @@ if presets_file.is_file():
             if seg.get("n"):
                 presets[seg["n"]] = pid
 
+# --- the panel as the mask leaves it -----------------------------------------
+def shown(path):
+    """Repo-relative when it is in the repo, absolute when -o points elsewhere."""
+    try:
+        return str(Path(path).relative_to(repo))
+    except ValueError:
+        return str(path)
+
+gap_dark = 0
+def load_gap():
+    """A mask image, white where the gap file says the LED is never painted."""
+    path = repo / "config" / "2d-gaps.json"
+    if not (do_mask and path.is_file() and pw and ph):
+        return None
+    try:
+        gaps = json.loads(path.read_text())
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(gaps, list) or len(gaps) < pw * ph:
+        return None
+    # 1 is painted; 0 (never paint) and -1 (no LED there) both read as off
+    global gap_dark
+    gap_dark = sum(1 for v in gaps[:pw * ph] if v <= 0)
+    img = Image.new("L", (pw, ph))
+    img.putdata([0 if v > 0 else 255 for v in gaps[:pw * ph]])
+    return img
+
+def render_masked(src, dest, mask):
+    """Write src with the disabled pixels painted flat. -> written|unchanged."""
+    frames, durations = [], []
+    flat = Image.new("RGB", (pw, ph), mask_colour)
+    with Image.open(src) as im:
+        for frame in ImageSequence.Iterator(im):
+            frames.append(Image.composite(flat, frame.convert("RGB"), mask))
+            durations.append(frame.info.get("duration", 40))
+
+    # One palette for the run, taken from the busiest frame, as the generators
+    # in gfx/ do: per-frame palettes make the flat area crawl.
+    richest = max(frames, key=lambda f: len(f.getcolors(maxcolors=1 << 16) or [1]))
+    palette = richest.quantize(colors=256, method=Image.Quantize.MEDIANCUT)
+    quantized = [f.quantize(palette=palette, dither=Image.Dither.NONE) for f in frames]
+
+    # Fewer frames may reach the file than went in: flattening the masked pixels
+    # makes neighbouring frames identical, and Pillow merges a run of those into
+    # one with their delays summed. The duration is unchanged, which is what counts.
+    buf = io.BytesIO()
+    quantized[0].save(buf, format="GIF", save_all=True, append_images=quantized[1:],
+                      duration=durations, loop=0, disposal=1, optimize=False)
+    data = buf.getvalue()
+    if dest.is_file() and dest.read_bytes() == data:
+        return "unchanged"
+    if not check:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(data)
+    return "written"
+
+gap_mask = load_gap()
+masked_written, masked_same = [], 0
+
 # --- descriptions already written, kept across runs --------------------------
 def existing_descriptions(path):
     """Map filename -> prose, and filename -> alt text, already written here."""
@@ -83,9 +162,11 @@ def existing_descriptions(path):
             continue
         # the description is what sits between the image and the facts line
         if line.startswith("<img "):
+            # two images per section now; only the first describes the GIF
+            # itself, and the second's alt is derived from it
             alt = re.search(r'alt="([^"]*)"', line)
-            if alt and alt.group(1) != name:
-                alts[name] = alt.group(1)
+            if alt and alt.group(1) != name and not alt.group(1).endswith(MASK_ALT):
+                alts.setdefault(name, alt.group(1))
             continue
         if line.startswith("```"):
             continue
@@ -145,6 +226,11 @@ doc += ["Frame counts are what is *stored* — runs of identical frames are merg
         "their delays summed, so the duration is the number that matters. The commands",
         "run from `gfx/`; `gfx/generate-all.sh <target>` runs one from anywhere, and",
         "`gfx/generate-all.sh` rebuilds whatever is stale.", ""]
+if gap_mask is not None:
+    doc += [f"Each one is shown twice: **as generated** on the left, and **behind the mask**",
+            f"on the right, where the {gap_dark} pixels `config/2d-gaps.json` switches off are",
+            f"painted `{mask_hex}` — what the logo-shaped cut-out leaves visible. Those",
+            "copies live in `docs/masked/` and are rewritten by this script.", ""]
 
 hand_dropped = []
 for name in gifs:
@@ -157,9 +243,18 @@ for name in gifs:
     if (w, h) != (pw, ph):
         facts.insert(0, f"{w}×{h}")
 
-    doc += [f"## {name}", "",
-            f'<img src="../config/gifs/{name}" width="{width}" '
-            f'alt="{alts.get(name, name)}">', "",
+    images = [f'<img src="../config/gifs/{name}" width="{width}" '
+              f'alt="{alts.get(name, name)}">']
+    if gap_mask is not None and (w, h) == (pw, ph):
+        status = render_masked(path, mask_dir / name, gap_mask)
+        if status == "written":
+            masked_written.append(name)
+        else:
+            masked_same += 1
+        images.append(f'<img src="masked/{name}" width="{width}" '
+                      f'alt="{alts.get(name, name)}{MASK_ALT}">')
+
+    doc += [f"## {name}", ""] + images + ["",
             kept.get(name, STUB), "",
             "`" + " · ".join(facts) + "`", ""]
 
@@ -196,16 +291,36 @@ doc += ["Add a GIF by writing one into `config/gifs/` — no larger than the pan
 
 rendered = "\n".join(doc)
 if check:
-    current = out_path.read_text() if out_path.is_file() else ""
-    if current == rendered:
-        print(f"{out_path.relative_to(repo)} is up to date ({len(gifs)} GIFs)")
+    stale = []
+    if (out_path.read_text() if out_path.is_file() else "") != rendered:
+        stale.append(shown(out_path))
+    stale += [shown(mask_dir / n) for n in masked_written]
+    if not stale:
+        print(f"{shown(out_path)} is up to date ({len(gifs)} GIFs, "
+              f"{masked_same} masked copies)")
         sys.exit(0)
-    print(f"{out_path.relative_to(repo)} is out of date — re-run bin/gen-gif-preview.sh")
+    print("out of date — re-run bin/gen-gif-preview.sh:")
+    for f in stale:
+        print(f"  {f}")
     sys.exit(1)
 
 out_path.parent.mkdir(parents=True, exist_ok=True)
 out_path.write_text(rendered)
 missing = [g for g in gifs if g not in kept]
 note = f"; {len(missing)} without a description ({', '.join(missing)})" if missing else ""
-print(f"Wrote {out_path.relative_to(repo)}: {len(gifs)} GIF(s), {total / 1024:.0f} KB{note}")
+print(f"Wrote {shown(out_path)}: {len(gifs)} GIF(s), {total / 1024:.0f} KB{note}")
+if gap_mask is None:
+    reason = "--no-mask" if not do_mask else "no usable config/2d-gaps.json"
+    print(f"Masked copies: skipped ({reason})")
+else:
+    print(f"Masked copies in {shown(mask_dir)}/: {len(masked_written)} written, "
+          f"{masked_same} already current"
+          + (f" — {', '.join(masked_written)}" if masked_written else ""))
+
+# A stale masked copy of a GIF that is no longer there is just litter.
+if gap_mask is not None and not check and mask_dir.is_dir():
+    for f in sorted(os.listdir(mask_dir)):
+        if f.lower().endswith(".gif") and f not in gifs:
+            (mask_dir / f).unlink()
+            print(f"Removed {shown(mask_dir / f)} (no such GIF any more)")
 GENPREVIEW

@@ -29,6 +29,7 @@ astryx-panel/                  # this repo
 ├── WLED/                      # upstream WLED checkout (git-ignored, separate repo)
 │   └── platformio_override.ini -> ../config/platformio_override.ini
 ├── docs/gif-preview.md        # generated: every GIF in config/gifs/, shown and described
+├── docs/masked/               # generated: the same GIFs with the gap file applied
 ├── docs/SETUP.md              # the same settings as WLED UI fields, for setting a board up by hand
 ├── README.md
 └── CLAUDE.md                  # context for Claude Code sessions
@@ -185,9 +186,18 @@ from the scripts in `gfx/`, described below, which write their output into
 duration, preset number and the command that rebuilds it. It is generated:
 
 ```sh
-bin/gen-gif-preview.sh          # rewrite it from config/gifs/
-bin/gen-gif-preview.sh --check  # say whether it is stale, change nothing
+bin/gen-gif-preview.sh                  # rewrite it from config/gifs/
+bin/gen-gif-preview.sh --check          # say whether it is stale, change nothing
+bin/gen-gif-preview.sh -m '#808080'     # a different colour for the masked pixels
+bin/gen-gif-preview.sh --no-mask        # source GIFs only, no masked copies
 ```
+
+Each GIF appears twice: as generated, and as the panel wears it, with
+`config/2d-gaps.json` applied so the 670 LEDs behind the mask are painted
+`#c0c0c0`. Those masked copies are written to `docs/masked/` and versioned,
+since the document has to render straight from the repository. They are
+re-derived from the GIF and the gap file every run and only rewritten when the
+bytes change, so regenerating costs nothing in the history.
 
 The numbers come from the files, the preset numbers from `config/presets.json`,
 and each rebuild command from `gfx/Makefile` itself (via `make -Bn`), so none of
