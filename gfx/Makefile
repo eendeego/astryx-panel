@@ -24,6 +24,8 @@ CFG  := ../config
 MARQUEE  := make-marquee.sh
 GAP      := make-gap.py
 SPLIT    := split-letters.py
+ANGLE := 45
+
 ASSEMBLE := make-assemble.py
 OFFSET   := make-offset.py
 RETIME   := retime.py
@@ -67,15 +69,19 @@ all: $(TARGETS)
 
 # The wordmark, rasterized to panel width. Only the width is pinned: -a
 # keeps the aspect ratio, and the marquee script reads the height it gets.
+#
+# Both marquees then run it at ANGLE. Turning a 64x12 word 45 degrees needs
+# 56x57, which still fits the panel, and the travel grows with it: 120 frames
+# flat and 157 round the drum, both brought to SECONDS by retime.py.
 $(OUT)/astryx-word.png: $(RAW)/astryx-word.svg Makefile | $(OUT)
 	rsvg-convert -o $@ -w $(SIZE) -a $<
 
 $(GIFS)/astryx-word.gif: $(OUT)/astryx-word.png $(MARQUEE) $(RETIME) Makefile | $(GIFS)
-	./$(MARQUEE) $< $@
+	./$(MARQUEE) -r $(ANGLE) $< $@
 	python3 $(RETIME) -q -t $(SECONDS) $@
 
 $(GIFS)/astryx-word-c.gif: $(OUT)/astryx-word.png $(MARQUEE) $(RETIME) Makefile | $(GIFS)
-	./$(MARQUEE) -c $< $@
+	./$(MARQUEE) -c -r $(ANGLE) $< $@
 	python3 $(RETIME) -q -t $(SECONDS) $@
 
 # -n -t 255 -b white is the combination verified on the panel: -b white

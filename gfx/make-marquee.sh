@@ -11,6 +11,12 @@
 # frames a full pass takes. Anything taller than 64 px is cropped evenly
 # top and bottom.
 #
+# With -r/--rotate the image is turned first and the marquee then runs on
+# what that leaves: a turned image is a bigger one — a 64x12 word at 45
+# degrees needs 54x54 — so the travel, and with it the frame count, grows
+# with the angle. The word still crosses the canvas horizontally; it is
+# the word that is tilted, not its path.
+#
 # With -c/--cylinder the image instead rides the surface of a vertical
 # drum whose front half spans the canvas: columns foreshorten toward the
 # edges where the surface turns away from the viewer, move fastest at
@@ -33,6 +39,8 @@ $SYNOPSIS
 Turn a PNG into a 64x64 animated marquee GIF.
 
   -c, --cylinder      render on a rotating drum instead of a flat surface
+  -r, --rotate DEG    turn the image this many degrees, clockwise on
+                      screen, before scrolling it              (default: 0)
   -s, --shade N       rim shading depth for --cylinder, 0..1  (default: 0.8)
                       0 disables shading
   -h, --help          show this help and exit
@@ -53,9 +61,12 @@ die() {
 
 CYLINDER=0
 SHADE=0.8
+ROTATE=0
 while (( $# )); do
   case "$1" in
     -c|--cylinder) CYLINDER=1; shift ;;
+    -r|--rotate) (( $# >= 2 )) || die "--rotate requires a value"
+                 ROTATE="$2"; shift 2 ;;
     -s|--shade) (( $# >= 2 )) || die "--shade requires a value"
                 SHADE="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
@@ -67,6 +78,8 @@ done
 
 [[ "$SHADE" =~ ^(0(\.[0-9]+)?|1(\.0+)?)$ ]] \
   || die "--shade must be a number in 0..1, got: $SHADE"
+[[ "$ROTATE" =~ ^[+-]?[0-9]+(\.[0-9]+)?$ ]] \
+  || die "--rotate must be a number of degrees, got: $ROTATE"
 
 (( $# )) || die "the following argument is required: input.png"
 (( $# <= 4 )) || die "unrecognized arguments: ${*:5}"
@@ -90,15 +103,24 @@ else
   IM=convert
 fi
 
+TMP=$(mktemp -d)
+trap 'rm -rf "$TMP"' EXIT
+
+# Turning the image is done once, here, so that everything below — the
+# dimensions, the travel, the strip wrapped round the drum — is measured on
+# what will actually be scrolled. The corners it gains have to stay clear, or
+# they would paint a box of background over the canvas.
+if [[ "$ROTATE" != 0 ]]; then
+  $IM "$IN" -background none -alpha set -rotate "$ROTATE" "$TMP/rotated.png"
+  IN="$TMP/rotated.png"
+fi
+
 # Source image dimensions
 DIMS=$($IM "$IN" -format '%w %h' info: 2>/dev/null || identify -format '%w %h' "$IN")
 read -r IMG_W IMG_H <<< "$DIMS"
 
 # Vertically centered
 Y=$(( (CANVAS_H - IMG_H) / 2 ))
-
-TMP=$(mktemp -d)
-trap 'rm -rf "$TMP"' EXIT
 
 if (( CYLINDER )); then
   # Drum radius: the visible front half (pi*R of surface arc) projects
@@ -159,4 +181,5 @@ $IM -delay "$DELAY" -loop 0 "$TMP"/frame_*.png "$OUT"
 
 MODE=""
 if (( CYLINDER )); then MODE=", cylinder, shade=$SHADE"; fi
+if [[ "$ROTATE" != 0 ]]; then MODE="$MODE, rotated ${ROTATE}°, ${IMG_W}x${IMG_H}"; fi
 echo "Wrote $OUT ($TRAVEL frames, ${DELAY}cs/frame, bg=$BG$MODE)"

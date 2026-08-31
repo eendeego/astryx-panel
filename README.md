@@ -291,21 +291,28 @@ rsvg-convert -o gfx/out/astryx-word.png -w 64 -a gfx/raw/astryx-word.svg
 Flat marquee:
 
 ```sh
-gfx/make-marquee.sh gfx/out/astryx-word.png config/gifs/astryx-word.gif
+gfx/make-marquee.sh -r 45 gfx/out/astryx-word.png config/gifs/astryx-word.gif
 gfx/retime.py -t 5 config/gifs/astryx-word.gif
 ```
 
 Cylindrical marquee:
 
 ```sh
-gfx/make-marquee.sh -c gfx/out/astryx-word.png config/gifs/astryx-word-c.gif
+gfx/make-marquee.sh -c -r 45 gfx/out/astryx-word.png config/gifs/astryx-word-c.gif
 gfx/retime.py -t 5 config/gifs/astryx-word-c.gif
 ```
 
+`-r/--rotate` turns the word before it is scrolled, clockwise on screen, and
+both targets use `-r $(ANGLE)` — 45° — which is the `ANGLE` at the top of
+`gfx/Makefile`. The word still crosses horizontally; it is the word that is
+tilted, not its path. Turning also makes it bigger: 64×12 becomes 56×57, which
+still clears the panel's edges (the ink runs rows 4–57 of 64).
+
 The travel is 64 + the image width for the flat one and the drum's visible arc
-plus the image width for the cylinder — 128 and 165 frames, 5.12 s and 6.6 s at
-4cs. `retime.py` brings both to exactly 5 s by scaling their delays to 3-4cs,
-which is 10 ms of difference between frames at 25 fps.
+plus the image width for the cylinder, so the turn changes the frame count too —
+120 and 157 frames, 4.8 s and 6.28 s at 4cs. `retime.py` brings both to exactly
+5 s by scaling their delays, which leaves 10 ms of difference between frames at
+25 fps.
 
 #### Letters
 

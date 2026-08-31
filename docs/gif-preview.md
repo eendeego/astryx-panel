@@ -4,7 +4,7 @@
 # GIF preview
 
 Every animation in `config/gifs/`, which is what `bin/provision.sh` puts on the
-panel and `bin/gen-presets.sh` turns into presets. 6 of them, 459 KB in total.
+panel and `bin/gen-presets.sh` turns into presets. 6 of them, 490 KB in total.
 
 All of them are 64×64, the panel's own size: WLED clips anything larger and
 scales smaller ones up by whole numbers only.
@@ -81,15 +81,16 @@ python3 retime.py -q -t 5 ../config/gifs/astryx-inout.gif
 
 ## astryx-word-c.gif
 
-<img src="../config/gifs/astryx-word-c.gif" width="192" alt="The wordmark wrapped around a rotating drum, foreshortening at the edges">
-<img src="masked/astryx-word-c.gif" width="192" alt="The wordmark wrapped around a rotating drum, foreshortening at the edges, behind the mask">
+<img src="../config/gifs/astryx-word-c.gif" width="192" alt="The tilted wordmark wrapped around a rotating drum, foreshortening at the edges">
+<img src="masked/astryx-word-c.gif" width="192" alt="The tilted wordmark wrapped around a rotating drum, foreshortening at the edges, behind the mask">
 
-The same word on the surface of a drum turning towards you: columns bunch up and
-dim at the rim where the surface angles away, and move fastest across the
-middle. The longest of the set, because a full turn is the visible arc plus the
-word's own width.
+The same tilted word on the surface of a drum turning towards you: columns bunch
+up and dim at the rim where the surface angles away, and move fastest across the
+middle. It travels furthest of the six — a full turn is the visible arc plus the
+word's own width — so its delays end up the shortest once it is brought to
+five seconds.
 
-`161 frames · 5.0 s · 71.4 KB · preset 5`
+`149 frames · 5.0 s · 85.9 KB · preset 5`
 
 ```sh
 python3 retime.py -q -t 5 ../config/gifs/astryx-word-c.gif
@@ -97,14 +98,15 @@ python3 retime.py -q -t 5 ../config/gifs/astryx-word-c.gif
 
 ## astryx-word.gif
 
-<img src="../config/gifs/astryx-word.gif" width="192" alt="The Astryx wordmark scrolling right to left across the panel">
-<img src="masked/astryx-word.gif" width="192" alt="The Astryx wordmark scrolling right to left across the panel, behind the mask">
+<img src="../config/gifs/astryx-word.gif" width="192" alt="The Astryx wordmark, tilted 45 degrees, scrolling right to left across the panel">
+<img src="masked/astryx-word.gif" width="192" alt="The Astryx wordmark, tilted 45 degrees, scrolling right to left across the panel, behind the mask">
 
 The wordmark enters from the right, crosses, and leaves at the left before
-starting again — a flat marquee, no wrap-around. The word is rasterized to the
-panel's width, so it is 64×12 and rides the middle of the panel.
+starting again — a flat marquee, no wrap-around. It is rasterized to the panel's
+width and then turned 45°, which makes it 56×57: tilted, but still crossing
+horizontally, and still clear of the panel's edges.
 
-`128 frames · 5.0 s · 54.4 KB · preset 6`
+`119 frames · 5.0 s · 70.4 KB · preset 6`
 
 ```sh
 python3 retime.py -q -t 5 ../config/gifs/astryx-word.gif

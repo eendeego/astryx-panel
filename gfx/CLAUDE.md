@@ -136,6 +136,15 @@ Source dimensions are read from the file at runtime; the image is used at its
 own size, vertically centered, so its width sets the frame count. Flat mode is
 one composite per frame at one pixel of travel, `TRAVEL = 64 + IMG_W`.
 
+`-r/--rotate` turns the image *before* any of that is measured, into a temp
+file that becomes the input — so the travel, the strip wrapped round the drum
+and the vertical centring all work on what is actually scrolled, and no other
+part of the script needs to know about the angle. The rotation is done with
+`-background none -alpha set`, without which the corners it gains arrive opaque
+and paint a box of background across the canvas. A turned image is a bigger
+one: the Makefile's 45° takes the 64×12 word to 56×57 and the flat travel from
+128 frames to 120.
+
 Cylinder mode (`-c`) maps the image onto a drum whose front half spans the
 canvas (`R = 32`, visible arc `ARC = ceil(pi*R)`, so `TRAVEL = ARC + IMG_W`).
 It first builds `strip.png`, the unrolled surface — the image with one full arc
