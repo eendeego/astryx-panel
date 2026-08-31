@@ -240,20 +240,19 @@ Output values are WLED's documented ones: 1 = regular pixel, 0 = never paint.
 -1 (physically missing) is never emitted, since the panel is a solid
 rectangle. The JSON is written one matrix row per line.
 
-**The polarity is disputed; do not "fix" it from either side alone.** The
-notes this pipeline arrived with say WLED 16.0.1 acts on the inverse of its own
-documentation — leaving the 1s dark and painting the 0s — presumed a firmware
-bug, and the tested invocation is authored for that: 0 on the logo shape, 1 on
-the ground. But `setUpMatrix()` in `WLED/wled00/FX_2Dfcn.cpp` maps a pixel only
-where the entry is `> 0`, i.e. 1 = painted, exactly as documented. Read
-literally, the tested file lights the ground and blanks the logo.
+**WLED 16.0.1 acts on the inverse of that documentation** — it leaves the 1s
+dark and paints the 0s — which is a firmware bug, confirmed on the panel. The
+script keeps emitting the documented polarity, so the gap file has to be
+authored inverted for the panel to look right: the tested invocation
+deliberately puts 0 on the logo shape and 1 on the ground.
 
-The note came from watching the panel, the code from reading the pinned
-release; nothing here can settle it. So the script keeps emitting the
-documented polarity, the tested invocation is left alone, and the fix if the
-panel disagrees is one flag — `-n/--negative` on the `$(GAPFILE)` recipe.
-Anything that looks like a polarity mistake in that recipe, in `README.md`, or
-in `threshold()` is load-bearing until someone looks at the LEDs.
+Reading the loader suggests otherwise — `setUpMatrix()` in
+`WLED/wled00/FX_2Dfcn.cpp` maps, and so paints, entries that are `> 0` — so
+whatever inverts it is elsewhere in 16.0.1. Do not "correct" the recipe to
+match that excerpt: the LEDs disagree with it. Anything that looks like a
+polarity mistake in the tested invocation, in `README.md`, or in `threshold()`
+is load-bearing until the firmware is fixed; a fix would mean adding
+`-n/--negative`.
 
 The `--channel auto` default prefers alpha and falls back to luma only when the
 render is fully opaque. The tested invocation therefore behaves quite

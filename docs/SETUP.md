@@ -147,9 +147,9 @@ Offset X: 0 Y: 0
 > `python3 gfx/make-gap.py -t 255 -s 64 -b white`.
 >
 > It only takes effect after a reboot, and WLED ignores an array shorter than
-> the matrix without saying so. If the mask comes out inverted — the ground lit
-> and the logo dark — that is the known polarity question; the firmware caveat
-> in `README.md` has the one-flag fix.
+> the matrix without saying so. The file looks backwards on purpose — 16.0.1
+> paints the `0`s and blanks the `1`s, against its own documentation — so do
+> not invert it to "fix" it; see the firmware caveat in `README.md`.
 
 ## User Interface
 
