@@ -200,9 +200,10 @@ follow. It never re-derives layout: `letters.json` bounds, scaled by
 wordmark has it, so the held frame is the wordmark (verified to within
 antialiasing — worst 25/255, nothing above 32).
 
-Two independent angles, easily confused: `--rotate` stands the *word* at an
-angle (letters turned with it), `--angle` turns the directions letters *arrive
-from* without moving the word. The ±45 variants use `--rotate`.
+`--rotate` stands the *word* at an angle, letters turned with it; the ±45
+variants are that flag. Where each letter comes *from* is not an angle you set
+— it is drawn at random, as is where it leaves towards and how fast it does
+either.
 
 `--word-width` defaults to 0, meaning `fitted_width()` — the largest word that
 fits at the current rotation. A turned W×H rectangle sweeps `W|cos| + H|sin|`
@@ -214,7 +215,28 @@ Entry direction is a vector, not one of four sides. A letter starts at the
 *nearest* distance along it that clears the canvas — clearing one axis is
 enough — and at exactly that distance its box rests against the edge and draws
 nothing, so no clearance margin is wanted. Adding one shifts every in-flight
-position and changes animations that are already approved.
+position and changes animations that are already approved. `entry_point()` is
+asked twice per letter now: once for the bearing it arrives on, once for the
+one it leaves towards.
+
+**Random, but only from `--seed`.** Everything drawn — both bearings per
+letter, both flight times, and the order the word comes apart in — comes out of
+one `random.Random(seed)`, in a fixed order. The build checks that a clean
+rebuild reproduces every GIF byte for byte, so an unseeded call, or a draw
+added in the middle of the existing ones, would break that.
+
+**The motion is integrated, not eased.** `spring()` is the step response of a
+damped second-order system: acceleration towards the target proportional to
+what is left, drag proportional to speed. `SWING` fits 9 radians of its
+oscillation into a flight, which leaves a residual of 0.2% of the travel at the
+last in-flight frame — sub-pixel, and `spring(1)` returns exactly 1, so the
+held word is exact. `accelerate()` is `u²`, constant acceleration from rest,
+used on the way out where nothing is pulling back.
+
+**The palette cannot come from the last frame any more.** It used to: the last
+frame was the assembled word. With a scattering it is an empty panel, so the
+palette is taken from the frame with the most colours, as `make-offset.py`
+does.
 
 Placement is by centre, because that is what rotation preserves; but an
 unrotated sprite is measured by its *exact* ink box rather than its rounded

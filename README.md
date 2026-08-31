@@ -352,29 +352,40 @@ it the wordmark viewBox instead, so it renders in place. Either way
 #### Assembling the word
 
 ```sh
-gfx/make-assemble.py -f 60 --stagger 4 --hold 45
+gfx/make-assemble.py -f 50 --hold 25 --out 50 --stagger 4 --seed 1
 ```
 
-Writes `config/gifs/astryx-assemble.gif`: the six letters fly in from the
-edges, one after another, settle into the wordmark, and the finished word is
-held before the loop restarts. Reads `gfx/out/letters/`, so run
-`gfx/split-letters.py` first — or just `gfx/generate-all.sh`, which sequences
-them.
+Writes `config/gifs/astryx-assemble.gif`: the six letters come in from
+off-canvas one after another, settle into the wordmark, the finished word is
+held — and then they leave again, in a different order and in different
+directions, until the panel is empty and the loop restarts. Reads
+`gfx/out/letters/`, so run `gfx/split-letters.py` first — or just
+`gfx/generate-all.sh`, which sequences them.
 
-The flags above give exactly 5 seconds: 60 frames of flight staggered 4 apart
-across six letters is 80 frames of travel, plus 45 held, at 4cs a frame. Bare
-defaults give 3.6 s. The knobs worth reaching for are `--sides` (which edge each
-letter enters from, cycled — `ltrb` by default), `--stagger` (frames between one
-letter setting off and the next), `--overshoot` (how far a letter overruns
-before settling), and `--hold`.
+The flags above give exactly 5 seconds: 50 frames in, 25 held, 50 out, at 4cs a
+frame. `--out 0` stops at the held word, which is what this did before.
+
+**Directions and speeds are random**, drawn from `--seed` — a given seed always
+produces the same animation, which is what lets the build reproduce it, and the
+three targets use seeds 1, 2 and 3 so they do not come apart the same way. Each
+letter arrives on its own bearing, leaves on another, and is given a random
+fraction of the time left in its phase, so they travel at different speeds;
+`--variation` (0.45) sets how far those speeds spread.
+
+**Motion comes from acceleration, not from an easing curve.** On the way in a
+letter is on a spring: pulled towards its place by a force proportional to the
+distance left, against a drag proportional to its speed, so it leaves quickly,
+slows as it arrives, overshoots its mark by about 5% and settles. `--damping`
+(0.7) sets that — at 1 it stops dead. On the way out nothing pulls back, so it
+is constant acceleration from rest: the letter drifts off its mark, then goes.
 
 ##### Diagonal variations
 
 `--rotate` stands the whole word at an angle, letters turned with it:
 
 ```sh
-gfx/make-assemble.py --rotate  45 -f 60 --stagger 4 --hold 45 gfx/out/letters config/gifs/astryx-assemble+45.gif
-gfx/make-assemble.py --rotate -45 -f 60 --stagger 4 --hold 45 gfx/out/letters config/gifs/astryx-assemble-45.gif
+gfx/make-assemble.py --rotate  45 --seed 2 -f 50 --hold 25 --out 50 gfx/out/letters config/gifs/astryx-assemble+45.gif
+gfx/make-assemble.py --rotate -45 --seed 3 -f 50 --hold 25 --out 50 gfx/out/letters config/gifs/astryx-assemble-45.gif
 ```
 
 A diagonal word is also a **bigger** word. The wordmark is 5.3:1, so lying flat
@@ -390,9 +401,8 @@ Any angle works — `--rotate 20` tilts it slightly and sizes it to match.
 `--word-width` overrides the fit if you want it smaller. All three targets are
 built by `gfx/generate-all.sh`.
 
-A separate knob, `--angle`, turns the directions letters *arrive from* without
-moving the word: at `--angle 45` they cross the corners instead of the edges.
-It composes with `--rotate`.
+`--rotate` is about the word; where the letters come from is not a knob any
+more, since those bearings are drawn at random.
 
 #### Offsetting the logo mark
 

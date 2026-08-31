@@ -4,7 +4,7 @@
 # GIF preview
 
 Every animation in `config/gifs/`, which is what `bin/provision.sh` puts on the
-panel and `bin/gen-presets.sh` turns into presets. 6 of them, 543 KB in total.
+panel and `bin/gen-presets.sh` turns into presets. 6 of them, 595 KB in total.
 
 All of them are 64×64, the panel's own size: WLED clips anything larger and
 scales smaller ones up by whole numbers only.
@@ -28,9 +28,10 @@ live in `docs/masked/` and are rewritten by this script.
 
 The word stands at 45°, which also makes it bigger: on the diagonal it has the
 panel's diagonal to fill, so it comes out 76×14 and the letters gain a fifth in
-height.
+height. Same spring in, same scatter out, from a different seed — so the
+letters take different paths from the flat one.
 
-`77 frames · 5.0 s · 94.0 KB · preset 1`
+`92 frames · 5.0 s · 111.7 KB · preset 1`
 
 ```sh
 python3 retime.py -q -t 5 ../config/gifs/astryx-assemble+45.gif
@@ -41,10 +42,10 @@ python3 retime.py -q -t 5 ../config/gifs/astryx-assemble+45.gif
 <img src="../config/gifs/astryx-assemble-45.gif" width="192" alt="The same assembly tilted 45 degrees the other way">
 <img src="masked/astryx-assemble-45.gif" width="210" alt="The same assembly tilted 45 degrees the other way, behind the mask">
 
-The mirror of the one above, tilted the other way. The two cut together well
-back to back.
+The mirror of the one above, tilted the other way, from a third seed. The two
+cut together well back to back.
 
-`74 frames · 5.0 s · 88.2 KB · preset 2`
+`87 frames · 5.0 s · 106.6 KB · preset 2`
 
 ```sh
 python3 retime.py -q -t 5 ../config/gifs/astryx-assemble-45.gif
@@ -55,9 +56,13 @@ python3 retime.py -q -t 5 ../config/gifs/astryx-assemble-45.gif
 <img src="../config/gifs/astryx-assemble.gif" width="192" alt="Letters flying in from the edges to form the horizontal wordmark">
 <img src="masked/astryx-assemble.gif" width="210" alt="Letters flying in from the edges to form the horizontal wordmark, behind the mask">
 
-Flat: the word lies across the panel, 64×12, letters about 12 px tall.
+Flat: the word lies across the panel, 64×12, letters about 12 px tall. They
+come in from six random bearings at six different speeds, settle on a spring —
+each overshoots its mark by about 5% and comes back — hold, and then leave
+again in another order and in other directions, accelerating away until the
+panel is empty.
 
-`75 frames · 5.0 s · 78.9 KB · preset 3`
+`87 frames · 5.0 s · 95.0 KB · preset 3`
 
 ```sh
 python3 retime.py -q -t 5 ../config/gifs/astryx-assemble.gif

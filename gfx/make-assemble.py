@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
-"""make-assemble.py — fly the letters in from the edges into the word.
+"""make-assemble.py — fly the letters in, hold the word, scatter them again.
 
-Each letter enters from one side of the 64x64 canvas, travels to the
-place it occupies in the wordmark, and stops. Letters leave in turn
-rather than together — see --stagger — so the word assembles itself
-piece by piece; once the last one lands the finished word is held for
---hold frames before the GIF loops.
+Each letter comes in from off-canvas at its own angle and its own speed,
+travels to the place it occupies in the wordmark, and settles. Letters
+set off in turn rather than together — see --stagger — so the word
+assembles itself piece by piece; once the last one lands the finished
+word is held for --hold frames, and then they leave the same way, in a
+different order and in different directions, until the panel is empty
+and the GIF loops.
+
+Directions are random and so are the speeds, drawn from --seed, which
+means a given seed always produces the same animation — the build has to
+be able to reproduce it. --variation says how far the speeds spread.
 
 Input is gfx/out/letters/, as written by split-letters.py: the SVGs supply
 the shapes and letters.json says where in the wordmark each belongs, so
@@ -18,12 +24,19 @@ sized to fill whatever angle it is given. At 45 degrees that is 76 px
 across where flat is 64: letters a fifth taller, and about 40% more of
 the panel lit.
 
-Motion is eased out — quick away from the edge, settling as it arrives —
-with a --overshoot fraction of the travel overrun and drawn back, which
-gives the landing some weight. Frames are composed at --supersample times
-the panel resolution and boxed down, so a letter can sit half a pixel
-into a position: at 64x64 a letter is about 12 px tall, and without that
-its motion would visibly jump from pixel to pixel.
+Nothing is eased by hand. On the way in a letter is on a spring: pulled
+towards its place with a force proportional to how far it still has to
+go, against a drag proportional to how fast it is going, so it leaves
+quickly, slows as it arrives and settles with the small overshoot that
+--damping sets. On the way out there is nothing pulling back — constant
+acceleration from rest, so it drifts, then goes. Both are integrals of an
+acceleration rather than curves chosen to look like one, which is what
+makes the motion read as weight instead of as timing.
+
+Frames are composed at --supersample times the panel resolution and boxed
+down, so a letter can sit half a pixel into a position: at 64x64 a letter
+is about 12 px tall, and without that its motion would visibly jump from
+pixel to pixel.
 
 Usage:
   ./make-assemble.py [options] [letters-dir] [output.gif]
@@ -33,17 +46,17 @@ Usage:
                       clockwise on screen                    (default: 0)
   -w, --word-width N  width of the assembled word, px
                                     (default: as wide as fits at --rotate)
-  -f, --frames N      frames each letter spends flying      (default: 30)
-      --hold N        frames the finished word is held      (default: 45)
-      --stagger N     frames between one letter leaving and
-                      the next                              (default: 3)
-      --sides ORDER   sides letters enter from, cycled: any
-                      of l, r, t, b                        (default: ltrb)
-      --angle DEG     turn every entry direction by this
-                      much, clockwise on screen; +/-45
-                      brings letters across the corners       (default: 0)
-      --overshoot F   fraction of the travel overrun on
-                      arrival, 0 for none                  (default: 0.05)
+  -f, --frames N      frames the assembly takes, first letter
+                      setting off to last landing           (default: 60)
+      --hold N        frames the finished word is held      (default: 25)
+      --out N         frames the scattering takes, 0 for none
+                                              (default: same as --frames)
+      --stagger N     frames between one letter setting off
+                      and the next                           (default: 4)
+      --variation F   how much the speeds differ, 0..1     (default: 0.45)
+      --damping F     spring damping on the way in: 1 settles
+                      dead, lower overshoots               (default: 0.7)
+      --seed N        seed for the directions and speeds      (default: 0)
       --supersample N compose at N times panel resolution     (default: 4)
   -d, --delay N       per-frame delay in centiseconds        (default: 4)
   -b, --background C  canvas fill colour                  (default: black)
@@ -59,6 +72,7 @@ Missing parent directories are created for the GIF.
 import argparse
 import json
 import math
+import random
 import shutil
 import subprocess
 import sys
@@ -71,9 +85,6 @@ GFX_DIR = Path(__file__).resolve().parent
 REPO_ROOT = GFX_DIR.parent
 DEFAULT_LETTERS = GFX_DIR / "out" / "letters"
 DEFAULT_OUT = REPO_ROOT / "config" / "gifs" / "astryx-assemble.gif"
-
-SIDES = "lrtb"
-
 
 def load_manifest(letters_dir, parser):
     """Read letters.json and check it describes what this script needs."""
@@ -99,31 +110,60 @@ def load_manifest(letters_dir, parser):
     return manifest, letters
 
 
-def solve_overshoot(excess):
-    """Back-easing strength whose overrun is `excess` of the travel.
+# How many radians of the spring's own oscillation are fitted into a flight.
+# At 9 the residual when the flight ends is under a thousandth of the travel,
+# so a letter is on its mark by the time the word is held.
+SWING = 9.0
 
-    easeOutBack peaks at 4s^3/(27(s+1)^2) past the target, which has no
-    tidy inverse; the curve rises with s, so bisect it.
+
+def spring(u, zeta):
+    """How far along a damped spring is, `u` of the way through the flight.
+
+    The letter is pulled towards its place by a force proportional to the
+    distance left, against a drag proportional to its speed: the step
+    response of a second-order system. Below a damping ratio of 1 it arrives
+    a little past the mark and settles back, which is what reads as weight.
     """
-    if excess <= 0:
+    if u <= 0:
         return 0.0
-    low, high = 0.0, 40.0
-    for _ in range(60):
-        mid = (low + high) / 2
-        peak = 4 * mid ** 3 / (27 * (mid + 1) ** 2)
-        low, high = (mid, high) if peak < excess else (low, mid)
-    return (low + high) / 2
+    if u >= 1:
+        return 1.0
+    decay = math.exp(-zeta * SWING * u)
+    if zeta >= 1:  # critically damped and beyond: no oscillation left in it
+        return 1 - decay * (1 + zeta * SWING * u)
+    ringing = SWING * math.sqrt(1 - zeta * zeta)
+    return 1 - decay * (math.cos(ringing * u)
+                        + (zeta * SWING / ringing) * math.sin(ringing * u))
 
 
-def ease(t, strength):
-    """Cubic ease-out, overrunning the target when strength > 0."""
-    u = t - 1
-    if strength <= 0:
-        return 1 + u ** 3
-    return 1 + (strength + 1) * u ** 3 + strength * u ** 2
+def accelerate(u):
+    """Constant acceleration from rest: distance as the square of time.
+
+    The way out, where nothing is pulling back — the letter drifts off its
+    mark, then goes.
+    """
+    return 0.0 if u <= 0 else 1.0 if u >= 1 else u * u
 
 
-BASE = {"l": (-1.0, 0.0), "r": (1.0, 0.0), "t": (0.0, -1.0), "b": (0.0, 1.0)}
+def bearing(rng):
+    """A unit vector at a uniformly random angle."""
+    theta = rng.uniform(0, 2 * math.pi)
+    return (math.cos(theta), math.sin(theta))
+
+
+def schedule(count, span, stagger, variation, rng):
+    """(set off, take) per letter, everything finished within `span`.
+
+    Departures are evenly spaced, so a phase still reads in order. What
+    varies is how long each letter then takes over what is left of the
+    phase, and that is where the difference in speed comes from: a letter
+    given 0.6 of the time left covers the same ground half again as fast.
+    """
+    plan = []
+    for i in range(count):
+        start = round(i * stagger)
+        plan.append((start, max(1, round((span - start) * rng.uniform(1 - variation, 1)))))
+    return plan
 
 
 def turn(vector, degrees):
@@ -204,19 +244,22 @@ def main():
     p.add_argument("-w", "--word-width", type=float, default=0,
                    help="width of the assembled word in pixels "
                         "(default: 0, meaning as wide as fits at --rotate)")
-    p.add_argument("-f", "--frames", type=int, default=30,
-                   help="frames each letter spends flying")
-    p.add_argument("--hold", type=int, default=45,
+    p.add_argument("-f", "--frames", type=int, default=60,
+                   help="frames the assembly takes, first letter setting off "
+                        "to last landing")
+    p.add_argument("--hold", type=int, default=25,
                    help="frames the finished word is held")
-    p.add_argument("--stagger", type=int, default=3,
-                   help="frames between one letter leaving and the next")
-    p.add_argument("--sides", default="ltrb",
-                   help="sides letters enter from, cycled (l, r, t, b)")
-    p.add_argument("--angle", type=float, default=0,
-                   help="degrees to turn every entry direction, clockwise on "
-                        "screen; 45 brings letters in across the corners")
-    p.add_argument("--overshoot", type=float, default=0.05,
-                   help="fraction of the travel overrun on arrival")
+    p.add_argument("--out", type=int, default=-1,
+                   help="frames the scattering takes, 0 for none "
+                        "(default: -1, meaning as many as --frames)")
+    p.add_argument("--stagger", type=int, default=4,
+                   help="frames between one letter setting off and the next")
+    p.add_argument("--variation", type=float, default=0.45,
+                   help="how much the speeds differ, 0..1")
+    p.add_argument("--damping", type=float, default=0.7,
+                   help="spring damping on the way in; 1 settles dead")
+    p.add_argument("--seed", type=int, default=0,
+                   help="seed for the directions and speeds")
     p.add_argument("--supersample", type=int, default=4,
                    help="compose at this multiple of the panel resolution")
     p.add_argument("-d", "--delay", type=int, default=4,
@@ -236,15 +279,16 @@ def main():
         p.error(f"--hold must not be negative, got {args.hold}")
     if args.stagger < 0:
         p.error(f"--stagger must not be negative, got {args.stagger}")
+    if not 0 <= args.variation < 1:
+        p.error(f"--variation must be in 0..1, got {args.variation}")
+    if args.damping <= 0:
+        p.error(f"--damping must be positive, got {args.damping}")
+    if args.out < -1:
+        p.error(f"--out must not be negative, got {args.out}")
     if args.delay < 1:
         p.error(f"--delay must be positive, got {args.delay}")
     if args.supersample < 1:
         p.error(f"--supersample must be positive, got {args.supersample}")
-    if not 0 <= args.overshoot < 1:
-        p.error(f"--overshoot must be in 0..1, got {args.overshoot}")
-    bad = sorted(set(args.sides) - set(SIDES))
-    if not args.sides or bad:
-        p.error(f"--sides takes a non-empty run of {', '.join(SIDES)}; got {args.sides!r}")
     if not args.letters.is_dir():
         p.error(f"no such directory: {args.letters}")
     if shutil.which("rsvg-convert") is None:
@@ -268,7 +312,15 @@ def main():
     word_centre = (word_width / 2, view_h * scale / 2)
     canvas_centre = (args.size / 2, args.size / 2)
 
-    strength = solve_overshoot(args.overshoot)
+    rng = random.Random(args.seed)
+    out_span = args.frames if args.out < 0 else args.out
+    if args.stagger * (len(letters) - 1) >= args.frames:
+        p.error(f"--stagger {args.stagger} over {len(letters)} letters leaves the last "
+                f"one no time to fly in --frames {args.frames}")
+    if out_span and args.stagger * (len(letters) - 1) >= out_span:
+        p.error(f"--stagger {args.stagger} over {len(letters)} letters leaves the last "
+                f"one no time to leave in --out {out_span}")
+
     flights = []
     with tempfile.TemporaryDirectory() as tmp:
         for n, letter in enumerate(letters):
@@ -301,32 +353,63 @@ def main():
             final = (canvas_centre[0] + offset[0] - span[0] / 2,
                      canvas_centre[1] + offset[1] - span[1] / 2)
 
-            side = args.sides[n % len(args.sides)]
-            direction = turn(BASE[side], args.angle)
-            start = entry_point(direction, final, raster, args.size)
-            flights.append((letter, sprite, start, final, side))
+            # In and out are drawn separately, so a letter rarely leaves the
+            # way it came. Both are backed off along their own bearing until
+            # the canvas no longer holds any of the letter.
+            arrives_from = bearing(rng)
+            leaves_towards = bearing(rng)
+            start = entry_point(arrives_from, final, raster, args.size)
+            exit_at = entry_point(leaves_towards, final, raster, args.size)
+            flights.append((letter, sprite, start, final, exit_at,
+                            arrives_from, leaves_towards))
 
-            if not args.quiet:
-                print(f"  {letter['file']}  from {compass(direction):>2}"
-                      f"  {start[0]:7.1f},{start[1]:6.1f}"
-                      f" -> {final[0]:6.1f},{final[1]:6.1f}", file=sys.stderr)
+    # When each letter sets off and how long it is given, in and out. The
+    # order is redrawn for the scattering, so the word does not come apart in
+    # the order it was built.
+    arrive = schedule(len(flights), args.frames, args.stagger, args.variation, rng)
+    depart = [None] * len(flights)
+    if out_span:
+        order = list(range(len(flights)))
+        rng.shuffle(order)
+        leaving = schedule(len(flights), out_span, args.stagger, args.variation, rng)
+        for slot, n in enumerate(order):
+            depart[n] = leaving[slot]
 
-    travel = args.frames + args.stagger * (len(flights) - 1)
-    total = travel + args.hold
+    if not args.quiet:
+        for n, (letter, _, start, final, exit_at, came, went) in enumerate(flights):
+            took = f"{arrive[n][1]:3d}f from frame {arrive[n][0]:3d}"
+            gone = (f", out over {depart[n][1]:3d}f from {depart[n][0]:3d} to "
+                    f"{compass(went):>2}") if out_span else ""
+            print(f"  {letter['file']}  in from {compass(came):>2} {took}"
+                  f"  {start[0]:7.1f},{start[1]:6.1f} -> {final[0]:6.1f},{final[1]:6.1f}"
+                  f"{gone}", file=sys.stderr)
+
+    held_until = args.frames + args.hold
+    total = held_until + out_span
     frames = []
     for f in range(total):
         canvas = Image.new("RGBA", (canvas_px, canvas_px), background + (255,))
-        for n, (_, sprite, start, final, _) in enumerate(flights):
-            t = (f - n * args.stagger) / args.frames
-            progress = 0.0 if t <= 0 else 1.0 if t >= 1 else ease(t, strength)
-            x = start[0] + (final[0] - start[0]) * progress
-            y = start[1] + (final[1] - start[1]) * progress
+        for n, (_, sprite, start, final, exit_at, _, _) in enumerate(flights):
+            if f < args.frames:                      # on the spring, coming in
+                begins, takes = arrive[n]
+                progress = spring((f - begins) / takes, args.damping)
+                here, there = start, final
+            elif f < held_until or not out_span:     # the word, held
+                progress, here, there = 0.0, final, final
+            else:                                    # accelerating away
+                begins, takes = depart[n]
+                progress = accelerate((f - held_until - begins) / takes)
+                here, there = final, exit_at
+            x = here[0] + (there[0] - here[0]) * progress
+            y = here[1] + (there[1] - here[1]) * progress
             canvas.alpha_composite(sprite, (round(x * ss), round(y * ss)))
         frames.append(canvas.resize((args.size, args.size), Image.BOX).convert("RGB"))
 
-    # One palette for every frame, taken from the assembled word: frame
-    # palettes of their own would swap colours around as letters land.
-    palette = frames[-1].quantize(colors=256, method=Image.Quantize.MEDIANCUT)
+    # One palette for every frame, taken from the busiest one: frame palettes
+    # of their own would swap colours around as letters land. It cannot be the
+    # last frame any more — that one is an empty panel once the word scatters.
+    richest = max(frames, key=lambda f: len(f.getcolors(maxcolors=1 << 16) or [1]))
+    palette = richest.quantize(colors=256, method=Image.Quantize.MEDIANCUT)
     quantized = [f.quantize(palette=palette, dither=Image.Dither.NONE) for f in frames]
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -339,12 +422,12 @@ def main():
         stored = written.n_frames
 
     print(f"Wrote {args.output} ({total} frames at {args.delay}cs = "
-          f"{total * args.delay / 100:.1f}s, {travel} in flight + {args.hold} held, "
+          f"{total * args.delay / 100:.1f}s, {args.frames} in + {args.hold} held"
+          f"{f' + {out_span} out' if out_span else ''}, "
           f"word {word_width:.1f}x{view_h * scale:.1f}px"
           f"{f' at {args.rotate:g}°' if args.rotate else ''}, "
-          f"{len(flights)} letters from {args.sides}"
-          f"{f' turned {args.angle:g}°' if args.angle else ''}, {stored} stored, "
-          f"bg={args.background})")
+          f"{len(flights)} letters, seed {args.seed}, damping {args.damping:g}, "
+          f"{stored} stored, bg={args.background})")
 
 
 if __name__ == "__main__":

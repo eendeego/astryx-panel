@@ -109,15 +109,21 @@ $(OUT)/letters/letters.json: $(RAW)/astryx-word.svg $(SPLIT) Makefile | $(OUT)
 # larger, since it then spans the panel's diagonal rather than its edge,
 # and make-assemble.py sizes it to fit whatever angle it is given.
 #
-# 60 frames of flight staggered 4 apart over six letters is 80 frames of
-# travel, and 45 held makes 125 — five seconds at 4cs, so the retime below
-# has nothing to do.
+# 50 frames to assemble, 25 held and 50 to scatter again makes 125 — five
+# seconds at 4cs, so the retime below has nothing to do. Each target draws its
+# own directions and speeds from its own seed, so the three do not come apart
+# the same way.
 $(GIFS)/astryx-assemble.gif:     ROTATE := 0
 $(GIFS)/astryx-assemble+45.gif:  ROTATE := 45
 $(GIFS)/astryx-assemble-45.gif:  ROTATE := -45
 
+$(GIFS)/astryx-assemble.gif:     SEED := 1
+$(GIFS)/astryx-assemble+45.gif:  SEED := 2
+$(GIFS)/astryx-assemble-45.gif:  SEED := 3
+
 $(ASSEMBLIES): $(OUT)/letters/letters.json $(ASSEMBLE) $(RETIME) Makefile | $(GIFS)
-	python3 $(ASSEMBLE) --rotate $(ROTATE) -f 60 --stagger 4 --hold 45 $(dir $<) $@
+	python3 $(ASSEMBLE) --rotate $(ROTATE) --seed $(SEED) \
+	                    -f 50 --hold 25 --out 50 --stagger 4 $(dir $<) $@
 	python3 $(RETIME) -q -t $(SECONDS) $@
 
 # 50 frames each way with the turn and the loop point not drawn twice is
