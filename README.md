@@ -119,6 +119,19 @@ bin/provision.sh -P 1234 <board-ip>  # board with a settings PIN
 bin/provision.sh -n <board-ip>       # merge only, reboot later yourself
 bin/provision.sh -G <board-ip>       # leave the board's gap file alone
 bin/provision.sh -F <board-ip>       # push everything, including what the board already has
+bin/provision.sh --prune <board-ip>  # also delete board files the repo does not have
+```
+
+**Nothing is deleted unless you ask.** WLED keeps whatever has been uploaded to
+it, so a GIF that has been renamed or dropped from `config/gifs/` stays on the
+board, out of every preset but still taking up filesystem. `--prune` removes
+what the repo does not account for, printing each file as it goes. It spares
+`cfg.json`, `wsec.json`, `presets.json` and `2d-gaps.json` and nothing else — a
+ledmap or a custom palette uploaded by hand is not in the repo either, and will
+go with the rest. Pair it with `-v` to see the list without acting on it:
+
+```
+Prune:  would delete 2 file(s): astryx-inward.gif astryx-outward.gif
 ```
 
 **It only pushes what differs.** One `GET /edit?list=` names every file on the

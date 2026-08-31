@@ -18,6 +18,7 @@
 #   -c, --config-only      Only apply cfg.json and the gap file (skip GIFs and presets)
 #   -g, --presets-only     Only upload GIFs and presets.json (no cfg change, no reboot)
 #   -G, --no-gap           Leave the board's gap file alone
+#       --prune            Delete files the board has and the repo does not
 #   -n, --no-reboot        Skip the reboot (matrix, and the gap file, only apply after one)
 #   -v, --verify-only      Change nothing; only check the board against the repo files
 #   -P, --pin <pin>        Settings PIN, if the board has one
@@ -30,6 +31,12 @@
 # config field points at it, WLED just reads that name while building the 2D
 # pixel map, which it does at boot — so a new gap file, like a matrix change,
 # only takes effect after the reboot.
+#
+# --prune removes whatever is left on the board that config/gifs/ and config/
+# do not account for — a GIF that has been renamed or dropped, most often. It
+# spares cfg.json, wsec.json, presets.json and 2d-gaps.json, and nothing else:
+# a ledmap or a custom palette uploaded by hand is not in the repo either, and
+# will go. -v shows what it would delete without deleting anything.
 
 set -euo pipefail
 
@@ -47,6 +54,7 @@ DO_PRESETS=1
 REBOOT=1
 VERIFY_ONLY=0
 FORCE=0
+PRUNE=0
 PIN=""
 
 while [[ $# -gt 0 ]]; do
@@ -57,10 +65,11 @@ while [[ $# -gt 0 ]]; do
     -c|--config-only)  DO_PRESETS=0; shift ;;
     -g|--presets-only) DO_CFG=0; DO_GAP=0; REBOOT=0; shift ;;
     -G|--no-gap)       DO_GAP=0; shift ;;
+    --prune)           PRUNE=1; shift ;;
     -n|--no-reboot)    REBOOT=0; shift ;;
     -v|--verify-only)  VERIFY_ONLY=1; shift ;;
     -P|--pin)          PIN="$2"; shift 2 ;;
-    -h|--help)         sed -n '2,32{s/^# \{0,1\}//p;}' "$0"; exit 0 ;;
+    -h|--help)         sed -n '2,40{s/^# \{0,1\}//p;}' "$0"; exit 0 ;;
     -*) echo "Unknown option: $1 (see --help)" >&2; exit 1 ;;
     *)  [[ -z "$HOST" ]] || { echo "Unexpected argument: $1" >&2; exit 1; }; HOST="$1"; shift ;;
   esac
@@ -122,6 +131,19 @@ upload() {
   esac
 }
 
+# remove <remote name>: WLED deletes through the same handler that lists.
+# --data-urlencode matters: a name like astryx-assemble+45.gif has to reach it
+# as %2B, or the + arrives as a space and the delete misses.
+remove_remote() {
+  local resp
+  resp=$("${CURL[@]}" --get --data-urlencode "func=delete" --data-urlencode "path=/$1" \
+         "$BASE/edit") || die "delete of $1 failed"
+  case "$resp" in
+    *"File deleted"*) ;;
+    *) die "unexpected response deleting $1: $resp (settings PIN? pass -P <pin>)" ;;
+  esac
+}
+
 # The board's whole filesystem in one request: /edit?list=/ answers with
 # [{"name","type","size"}, ...]. Cheaper than fetching files back to compare,
 # and it is what lets an unchanged file be skipped instead of re-uploaded.
@@ -178,6 +200,18 @@ if [[ $DO_PRESETS -eq 1 ]]; then
 fi
 [[ $DO_GAP -eq 1 ]] && plan "$GAPS" "2d-gaps.json"
 
+# Everything the repo accounts for, read off disk rather than off the flags:
+# -c must not make the GIFs look like strangers and have --prune eat them.
+STALE=()
+if [[ $PRUNE -eq 1 && $HAVE_LIST -eq 1 ]]; then
+  KEEP=$'cfg.json\nwsec.json\npresets.json\n2d-gaps.json'
+  while IFS= read -r f; do [[ -n "$f" ]] && KEEP+=$'\n'$(basename "$f"); done \
+    < <(ls "$GIF_DIR"/*.gif 2>/dev/null || true)
+  while read -r name _; do
+    [[ -n "$name" ]] && ! grep -qxF "$name" <<<"$KEEP" && STALE+=("$name")
+  done <<<"$FILE_TABLE"
+fi
+
 # The config is compared the same way: read once, merged only if it differs.
 CFG_DIFFERS=0
 LIVE=""
@@ -199,7 +233,7 @@ PY
   fi
 fi
 
-if [[ $VERIFY_ONLY -eq 0 && ${#PUSH_LOCAL[@]} -eq 0 && $CFG_DIFFERS -eq 0 ]]; then
+if [[ $VERIFY_ONLY -eq 0 && ${#PUSH_LOCAL[@]} -eq 0 && $CFG_DIFFERS -eq 0 && ${#STALE[@]} -eq 0 ]]; then
   echo "Up to date: every file and the panel config already match the repo (-F to push anyway)."
   exit 0
 fi
@@ -264,14 +298,28 @@ PY
       [[ $i -eq 60 ]] && { echo; die "board did not come back within 60 s"; }
     done
   fi
-  # anything uploaded makes the listing read at the start stale, and the
-  # listing is what the checks below compare against
-  [[ ${#PUSH_LOCAL[@]} -gt 0 ]] && { read_listing || true; }
+  if [[ ${#STALE[@]} -gt 0 ]]; then
+    for name in "${STALE[@]}"; do
+      echo "Deleting /$name ($(( $(board_size "$name") / 1024 )) KB, not in the repo) ..."
+      remove_remote "$name"
+    done
+  fi
+
+  # anything uploaded or deleted makes the listing read at the start stale, and
+  # the listing is what the checks below compare against
+  [[ ${#PUSH_LOCAL[@]} -gt 0 || ${#STALE[@]} -gt 0 ]] && { read_listing || true; }
 fi
 
 # --- Verify -------------------------------------------------------------------
 # Files are checked against the listing, not fetched back: reading 400 KB of
 # GIFs off the board to compare their sizes cost more than writing them did.
+if [[ $PRUNE -eq 1 && $VERIFY_ONLY -eq 1 ]]; then
+  if [[ ${#STALE[@]} -eq 0 ]]; then
+    echo "Prune:  nothing on the board that the repo does not have"
+  else
+    echo "Prune:  would delete ${#STALE[@]} file(s): ${STALE[*]}"
+  fi
+fi
 echo "Verifying:"
 if [[ $DO_CFG -eq 1 ]]; then
   [[ $REBOOTED -eq 1 || -z "$LIVE" ]] && { LIVE=$("${CURL[@]}" "$BASE/json/cfg") || die "cannot read back /json/cfg"; }
