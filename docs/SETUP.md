@@ -147,9 +147,10 @@ Offset X: 0 Y: 0
 > `python3 gfx/make-gap.py -t 255 -s 64 -b white`.
 >
 > It only takes effect after a reboot, and WLED ignores an array shorter than
-> the matrix without saying so. The file looks backwards on purpose — 16.0.1
-> paints the `0`s and blanks the `1`s, against its own documentation — so do
-> not invert it to "fix" it; see the firmware caveat in `README.md`.
+> the matrix without saying so. `1` is a pixel WLED paints, so the logo shape
+> is the `1`s and the masked ground the `0`s — 3426 against 670 here. If the
+> panel lights the surround instead, the file went in inverted; see the
+> polarity note in `README.md`.
 
 ## User Interface
 

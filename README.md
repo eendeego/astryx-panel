@@ -350,29 +350,32 @@ Reads `gfx/raw/astryx.svg` and writes `config/2d-gaps.json`, the defaults for
 both positional arguments. `bin/provision.sh` uploads it with the panel config;
 the name is the interface, so do not rename it.
 
-**Firmware caveat.** WLED documents `1` as a regular pixel and `0` as one that
-is never painted. WLED 16.0.1 acts on the inverse — the entries written as `1`
-are the ones it leaves dark, and the `0`s are the ones it paints. This is a
-firmware bug, confirmed on the panel.
-
-The invocation above is therefore written for the firmware rather than for the
-documentation: it puts `0` on the logo shape and `1` on the ground around it,
-which on 16.0.1 is what lights the shape and blanks the masked area. Do not
-"correct" it to match the docs without re-testing on the panel. If a later
-release fixes the bug, add `-n/--negative` to the `$(GAPFILE)` recipe in
-`gfx/Makefile` to flip the polarity back.
-
-Reading the loader will not talk you out of this. `setUpMatrix()` in
-`WLED/wled00/FX_2Dfcn.cpp` maps — and so paints — the entries that are `> 0`,
-exactly as documented:
+**Polarity — checked on the panel, and `-n` is load-bearing.** WLED documents
+`1` as a regular pixel and `0` as one that is never painted, and 16.0.1 does
+exactly that: `setUpMatrix()` in `WLED/wled00/FX_2Dfcn.cpp` maps — and so
+paints — the entries above `0`.
 
 ```c
 if (!gapTable || (gapTable && gapTable[index] >  0)) customMappingTable[index] = pix; // painted
 if (!gapTable || (gapTable && gapTable[index] >= 0)) pix++;                           // counted
 ```
 
-The panel does something else, so whatever inverts it happens elsewhere in
-16.0.1. The LEDs are the authority here, not that excerpt.
+`-n/--negative` is in the recipe because of the *render*, not the firmware:
+`-b white` draws the mark black on white, so the logo shape arrives at `0`
+coverage and `-t 255` alone would mark the ground as the paintable side. The
+flip puts `1` on the 3426 pixels of logo and `0` on the 670 pixels of ground,
+which is the panel lighting the shape and blanking what the mask covers.
+
+Notes carried over from the project this pipeline came from said 16.0.1
+inverted the documented meaning, and the gap file it shipped was authored for
+that. This panel says otherwise — with that file the ground lit and the logo
+went dark. Don't reintroduce the inversion without putting a board in front of
+you.
+
+One consequence of `-t 255` worth knowing: with the flip it lights the logo
+*and* its 282 antialiased edge pixels, so an LED only partly behind the cut-out
+is on. `-n -t 1` is the conservative alternative — 3144 lit, only the pixels
+fully inside the shape — if edge glow through the mask material is visible.
 
 ### Extra animations
 

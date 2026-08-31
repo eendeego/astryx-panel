@@ -68,11 +68,16 @@ $(GIFS)/astryx-word.gif: $(OUT)/astryx-word.png $(MARQUEE) | $(GIFS)
 $(GIFS)/astryx-word-c.gif: $(OUT)/astryx-word.png $(MARQUEE) | $(GIFS)
 	./$(MARQUEE) -c $< $@
 
-# -t 255 -b white, and the inverted polarity it produces, are deliberate:
-# see the firmware caveat in README.md before touching this recipe. The
-# explicit paths are the same files make-gap.py would default to.
-$(GAPFILE): $(RAW)/astryx.svg $(GAP)
-	python3 $(GAP) -t 255 -s $(SIZE) -b white $< $@
+# -n -t 255 -b white is the combination verified on the panel: -b white
+# renders the mark black on white, so the shape sits at 0 coverage, and -n
+# flips the threshold's result to put 1 (WLED's "paint this pixel") on the
+# shape and 0 on the ground. See the polarity note in README.md before
+# touching it. The explicit paths are the same files make-gap.py defaults to.
+# Depends on this Makefile too: the flags above are the polarity, so editing
+# them has to invalidate the file the way editing the script does. It is a
+# second of work, unlike the GIFs.
+$(GAPFILE): $(RAW)/astryx.svg $(GAP) Makefile
+	python3 $(GAP) -n -t 255 -s $(SIZE) -b white $< $@
 
 # One SVG per letter, for animating them independently. The manifest
 # stands in for the whole directory: the script writes it last, and it

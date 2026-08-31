@@ -64,11 +64,11 @@ something else. Do not vendor WLED code into this repo.
   the entire interface — nothing in `cfg.json` refers to it; WLED reads
   `/2d-gaps.json` while building the 2D map in `setUpMatrix()`, and silently
   ignores an array shorter than the matrix, which is why provisioning checks
-  the length first. `-G` leaves the board's copy alone. Its polarity is
-  deliberately inverted: WLED 16.0.1 paints the `0`s and blanks the `1`s, the
-  reverse of both its own documentation and what `setUpMatrix()` appears to do
-  — confirmed on the panel, so do not "fix" it from the source (see the
-  firmware caveat in `README.md`).
+  the length first. `-G` leaves the board's copy alone. Polarity: 16.0.1 paints
+  the `1`s, as documented and as `setUpMatrix()` reads; the `-n/--negative` in
+  the `$(GAPFILE)` recipe is there because the render is black-on-white, and it
+  is what puts the `1`s on the logo. Verified on the panel — earlier notes
+  claiming the firmware inverts this are wrong (see `README.md`).
 - `docs/SETUP.md` is the manual path: every panel setting as the field it is in
   WLED's UI, annotated with whether a build flag, `cfg.json`, or nothing at all
   restores it. Gamma, transition time, the UI preferences and the gap file are

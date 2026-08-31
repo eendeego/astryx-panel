@@ -240,19 +240,20 @@ Output values are WLED's documented ones: 1 = regular pixel, 0 = never paint.
 -1 (physically missing) is never emitted, since the panel is a solid
 rectangle. The JSON is written one matrix row per line.
 
-**WLED 16.0.1 acts on the inverse of that documentation** — it leaves the 1s
-dark and paints the 0s — which is a firmware bug, confirmed on the panel. The
-script keeps emitting the documented polarity, so the gap file has to be
-authored inverted for the panel to look right: the tested invocation
-deliberately puts 0 on the logo shape and 1 on the ground.
+**16.0.1 paints the 1s, as documented** — `setUpMatrix()` in
+`WLED/wled00/FX_2Dfcn.cpp` maps, and so paints, entries that are `> 0`, and the
+panel agrees. So the gap file wants 1 on the logo shape.
 
-Reading the loader suggests otherwise — `setUpMatrix()` in
-`WLED/wled00/FX_2Dfcn.cpp` maps, and so paints, entries that are `> 0` — so
-whatever inverts it is elsewhere in 16.0.1. Do not "correct" the recipe to
-match that excerpt: the LEDs disagree with it. Anything that looks like a
-polarity mistake in the tested invocation, in `README.md`, or in `threshold()`
-is load-bearing until the firmware is fixed; a fix would mean adding
-`-n/--negative`.
+Getting there needs `-n/--negative`, which is why the recipe carries it: the
+threshold works on a render, and `-b white` draws the mark *black* on white, so
+the shape arrives at 0 coverage and would otherwise end up as the dark side.
+The flip is about the render, not about the firmware.
+
+Notes inherited with this pipeline claimed 16.0.1 inverted the documented
+meaning and shipped a gap file authored for that reading. On the panel it lit
+the ground and blanked the logo. If something here looks like a polarity
+mistake, it was checked against LEDs — change it only with a board in front of
+you.
 
 The `--channel auto` default prefers alpha and falls back to luma only when the
 render is fully opaque. The tested invocation therefore behaves quite
@@ -260,7 +261,11 @@ differently from the defaults: `-b white` makes the render opaque and forces
 the luma path, and `raw/astryx.svg` paints with `currentColor` against a CSS
 variable rsvg cannot resolve, so the mark rasterizes pure black on white.
 `-t 255` then demands pure white, which puts the shape *and* its antialiased
-edge pixels at 0 — the conservative choice, since a partially masked LED should
-be off. Running with the defaults instead (alpha, threshold 128) yields close
-to the complement of that mask, so don't treat default output as the intended
+edge pixels on the same side — and with `-n` that side is the lit one, so 282
+edge pixels light up along with the 3144 that are fully inside the shape. That
+is the less conservative of the two readings of an edge: an LED only partly
+behind the cut-out is on. `-n -t 1` is the other one, lighting only what is
+fully inside, and is the change to make if the mask material glows at the
+boundary. Running with the defaults instead (alpha, threshold 128) yields close
+to the complement of this mask, so don't treat default output as the intended
 gap file.

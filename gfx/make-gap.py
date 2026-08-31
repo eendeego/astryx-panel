@@ -15,14 +15,11 @@ side of the shape that sits behind the mask.
 WLED also defines -1 (pixel physically missing) for gap files. A solid
 rectangular panel has no missing pixels, so this script never emits it.
 
-Firmware caveat: WLED 16.0.1 acts on the inverse of the documented
-meaning — on that build the entries written as 1 are the ones left dark,
-and the 0s are the ones painted. This script emits the documented
-polarity, so on 16.0.1 the file has to be authored "backwards": the
-tested invocation (see README.md) leaves the logo shape at 0 and the
-surrounding ground at 1, which is what actually lights the shape and
-blanks the masked area on that firmware. Assumed to be a bug; if a later
-release corrects it, flip the polarity back by adding -n/--negative.
+The polarity that reaches the panel is WLED's documented one: 16.0.1
+paints the 1s. Whether -n is wanted therefore depends on the render, not
+on the firmware — the tested invocation (see README.md) draws the mark
+black on white, so the shape lands at 0 coverage and -n is what turns it
+into the 1s that light up.
 
 Usage:
   ./make-gap.py [options] [input.svg] [output.json]
@@ -105,8 +102,9 @@ def coverage(png, size, channel):
 def threshold(rows, t, negative):
     """Map 0..255 coverage to WLED 1 (regular) / 0 (never paint).
 
-    Documented polarity — WLED 16.0.1 acts on its inverse; see the module
-    docstring before changing this or the invocation in README.md.
+    1 is the pixel WLED paints, on 16.0.1 as documented. Which side of the
+    threshold that lands on is the caller's business: see the module
+    docstring and the invocation in README.md before changing either.
     """
     return [[1 if (v >= t) != negative else 0 for v in row] for row in rows]
 
