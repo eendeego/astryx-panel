@@ -220,8 +220,10 @@ holds included, so outward is inward read backwards — checked frame by frame,
 0/255 difference. `both`, which is what the Makefile builds, concatenates the
 two: `[first] * hold + travel + travel[-2:0:-1]`, where that slice is the way
 back with both ends dropped, so the empty panel is not drawn twice at the turn
-and the mark is not drawn again where the hold is about to redraw it. 73 frames
-against inward's 45. Growing the mark by stroking in the fill colour was the first
+and the mark is not drawn again where the hold is about to redraw it. The
+Makefile asks for `-f 60 --hold 30`, twice the defaults, so it comes out at
+148 frames and 5.9 s: slowing an animation here means more frames at 4cs, not
+a longer delay, since every other GIF on the panel runs at 4cs. Growing the mark by stroking in the fill colour was the first
 attempt and is not what is wanted: the mark already covers 83% of the panel, so
 dilating it merely floods the panel in 5.82px and looks nothing like the
 inward run.

@@ -4,9 +4,11 @@
 # and runs this from gfx/ whatever the current directory is.
 #
 # Every recipe below is one of the tested (good) invocations documented in
-# README.md; keep the two in step. A target is remade when its source or
-# the script that produces it changes, which is what keeps a repeat run
-# cheap: each marquee GIF is one ImageMagick invocation per frame.
+# README.md; keep the two in step. A target is remade when its source, the
+# script that produces it, or this file changes — the flags here are as much
+# a part of the output as the script is, and a recipe edit that quietly
+# rebuilt nothing has caught us twice. A repeat run is still free, which is
+# the point: each marquee GIF is one ImageMagick invocation per frame.
 #
 # Finished GIFs land in config/gifs/, where bin/gen-presets.sh and
 # bin/provision.sh pick them up, and are versioned with the rest of the
@@ -58,13 +60,13 @@ all: $(TARGETS)
 
 # The wordmark, rasterized to panel width. Only the width is pinned: -a
 # keeps the aspect ratio, and the marquee script reads the height it gets.
-$(OUT)/astryx-word.png: $(RAW)/astryx-word.svg | $(OUT)
+$(OUT)/astryx-word.png: $(RAW)/astryx-word.svg Makefile | $(OUT)
 	rsvg-convert -o $@ -w $(SIZE) -a $<
 
-$(GIFS)/astryx-word.gif: $(OUT)/astryx-word.png $(MARQUEE) | $(GIFS)
+$(GIFS)/astryx-word.gif: $(OUT)/astryx-word.png $(MARQUEE) Makefile | $(GIFS)
 	./$(MARQUEE) $< $@
 
-$(GIFS)/astryx-word-c.gif: $(OUT)/astryx-word.png $(MARQUEE) | $(GIFS)
+$(GIFS)/astryx-word-c.gif: $(OUT)/astryx-word.png $(MARQUEE) Makefile | $(GIFS)
 	./$(MARQUEE) -c $< $@
 
 # -n -t 255 -b white is the combination verified on the panel: -b white
@@ -72,16 +74,13 @@ $(GIFS)/astryx-word-c.gif: $(OUT)/astryx-word.png $(MARQUEE) | $(GIFS)
 # flips the threshold's result to put 1 (WLED's "paint this pixel") on the
 # shape and 0 on the ground. See the polarity note in README.md before
 # touching it. The explicit paths are the same files make-gap.py defaults to.
-# Depends on this Makefile too: the flags above are the polarity, so editing
-# them has to invalidate the file the way editing the script does. It is a
-# second of work, unlike the GIFs.
 $(GAPFILE): $(RAW)/astryx.svg $(GAP) Makefile
 	python3 $(GAP) -n -t 255 -s $(SIZE) -b white $< $@
 
 # One SVG per letter, for animating them independently. The manifest
 # stands in for the whole directory: the script writes it last, and it
 # lists every letter file, so if it is current they all are.
-$(OUT)/letters/letters.json: $(RAW)/astryx-word.svg $(SPLIT) | $(OUT)
+$(OUT)/letters/letters.json: $(RAW)/astryx-word.svg $(SPLIT) Makefile | $(OUT)
 	python3 $(SPLIT) $< $(dir $@)
 
 # The letters flying in from the edges and settling into the word, which
@@ -92,11 +91,11 @@ $(GIFS)/astryx-assemble.gif:     ROTATE := 0
 $(GIFS)/astryx-assemble+45.gif:  ROTATE := 45
 $(GIFS)/astryx-assemble-45.gif:  ROTATE := -45
 
-$(ASSEMBLIES): $(OUT)/letters/letters.json $(ASSEMBLE) | $(GIFS)
+$(ASSEMBLIES): $(OUT)/letters/letters.json $(ASSEMBLE) Makefile | $(GIFS)
 	python3 $(ASSEMBLE) --rotate $(ROTATE) $(dir $<) $@
 
-$(OFFSET_GIF): $(RAW)/astryx.svg $(OFFSET) | $(GIFS)
-	python3 $(OFFSET) -d both $< $@
+$(OFFSET_GIF): $(RAW)/astryx.svg $(OFFSET) Makefile | $(GIFS)
+	python3 $(OFFSET) -d both -f 60 --hold 30 $< $@
 
 $(OUT) $(GIFS):
 	mkdir -p $@

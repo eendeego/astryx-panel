@@ -4,7 +4,7 @@
 # GIF preview
 
 Every animation in `config/gifs/`, which is what `bin/provision.sh` puts on the
-panel and `bin/gen-presets.sh` turns into presets. 6 of them, 436 KB in total.
+panel and `bin/gen-presets.sh` turns into presets. 6 of them, 480 KB in total.
 
 All of them are 64×64, the panel's own size: WLED clips anything larger and
 scales smaller ones up by whole numbers only.
@@ -73,10 +73,10 @@ rather than guessed: the script bisects for the first distance that leaves the
 panel empty. Neither turn draws a frame twice, so the loop has no stutter at the
 empty panel or at the hold.
 
-`58 frames · 2.9 s · 43.2 KB · preset 4`
+`118 frames · 5.9 s · 86.9 KB · preset 4`
 
 ```sh
-python3 make-offset.py -d both raw/astryx.svg ../config/gifs/astryx-inout.gif
+python3 make-offset.py -d both -f 60 --hold 30 raw/astryx.svg ../config/gifs/astryx-inout.gif
 ```
 
 ## astryx-word-c.gif
