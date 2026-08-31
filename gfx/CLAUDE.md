@@ -136,14 +136,21 @@ Source dimensions are read from the file at runtime; the image is used at its
 own size, vertically centered, so its width sets the frame count. Flat mode is
 one composite per frame at one pixel of travel, `TRAVEL = 64 + IMG_W`.
 
-`-r/--rotate` turns the image *before* any of that is measured, into a temp
-file that becomes the input — so the travel, the strip wrapped round the drum
-and the vertical centring all work on what is actually scrolled, and no other
-part of the script needs to know about the angle. The rotation is done with
-`-background none -alpha set`, without which the corners it gains arrive opaque
-and paint a box of background across the canvas. A turned image is a bigger
-one: the Makefile's 45° takes the 64×12 word to 56×57 and the flat travel from
-128 frames to 120.
+`-r/--rotate` turns the *marquee*, not the word: the direction of travel and,
+in cylinder mode, the drum's axis. It would be wrong to turn the source image
+instead — that tilts the word and leaves it crossing horizontally, which is a
+different animation.
+
+The mechanism is a bigger working canvas. `WORK = 64 × (|cos| + |sin|)`, 92 at
+45°, rounded up to even so the drum's radius stays whole; everything renders on
+that square, and the final assembly turns each frame and crops the panel out of
+the middle in one ImageMagick pass. Nothing else in the script knows about the
+angle. The travel is measured on the working canvas, so the frame count grows
+with it: 156 flat and 209 round the drum, against 128 and 165 upright.
+
+That growth is why `astryx-word-c.gif` runs 10 s rather than 5 (a per-target
+`SECONDS` in the Makefile). 209 frames in 5 s is 2-3cs a frame; the panel
+cannot decode that many and would not honour the timing.
 
 Cylinder mode (`-c`) maps the image onto a drum whose front half spans the
 canvas (`R = 32`, visible arc `ARC = ceil(pi*R)`, so `TRAVEL = ARC + IMG_W`).

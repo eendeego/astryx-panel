@@ -80,6 +80,12 @@ $(GIFS)/astryx-word.gif: $(OUT)/astryx-word.png $(MARQUEE) $(RETIME) Makefile | 
 	./$(MARQUEE) -r $(ANGLE) $< $@
 	python3 $(RETIME) -q -t $(SECONDS) $@
 
+# The drum turned 45° spans the panel's diagonal, so its arc — and its frame
+# count — grows to 209. Five seconds would mean 2-3cs a frame, forty-odd frames
+# a second, which the panel will not keep up with and so would not honour; ten
+# keeps it near the 4cs everything else runs at, and is still a whole number of
+# passes in a playlist slot.
+$(GIFS)/astryx-word-c.gif: SECONDS := 10
 $(GIFS)/astryx-word-c.gif: $(OUT)/astryx-word.png $(MARQUEE) $(RETIME) Makefile | $(GIFS)
 	./$(MARQUEE) -c -r $(ANGLE) $< $@
 	python3 $(RETIME) -q -t $(SECONDS) $@

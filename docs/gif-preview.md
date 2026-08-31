@@ -4,7 +4,7 @@
 # GIF preview
 
 Every animation in `config/gifs/`, which is what `bin/provision.sh` puts on the
-panel and `bin/gen-presets.sh` turns into presets. 6 of them, 490 KB in total.
+panel and `bin/gen-presets.sh` turns into presets. 6 of them, 543 KB in total.
 
 All of them are 64×64, the panel's own size: WLED clips anything larger and
 scales smaller ones up by whole numbers only.
@@ -81,32 +81,34 @@ python3 retime.py -q -t 5 ../config/gifs/astryx-inout.gif
 
 ## astryx-word-c.gif
 
-<img src="../config/gifs/astryx-word-c.gif" width="192" alt="The tilted wordmark wrapped around a rotating drum, foreshortening at the edges">
-<img src="masked/astryx-word-c.gif" width="192" alt="The tilted wordmark wrapped around a rotating drum, foreshortening at the edges, behind the mask">
+<img src="../config/gifs/astryx-word-c.gif" width="192" alt="The wordmark on a drum whose axis runs diagonally, foreshortening towards two corners">
+<img src="masked/astryx-word-c.gif" width="192" alt="The wordmark on a drum whose axis runs diagonally, foreshortening towards two corners, behind the mask">
 
-The same tilted word on the surface of a drum turning towards you: columns bunch
-up and dim at the rim where the surface angles away, and move fastest across the
-middle. It travels furthest of the six — a full turn is the visible arc plus the
-word's own width — so its delays end up the shortest once it is brought to
-five seconds.
+The same word on the surface of a drum turning towards you, with the drum's axis
+turned 45° as well: the surface now angles away towards the top-left and
+bottom-right corners, so that is where columns bunch up and dim, and they run
+fastest along the other diagonal. Turning the axis puts the drum across the
+panel's diagonal, which makes its arc — and its frame count — the longest of the
+six, so this one runs ten seconds where the rest run five.
 
-`149 frames · 5.0 s · 85.9 KB · preset 5`
+`194 frames · 10.0 s · 112.3 KB · preset 5`
 
 ```sh
-python3 retime.py -q -t 5 ../config/gifs/astryx-word-c.gif
+python3 retime.py -q -t 10 ../config/gifs/astryx-word-c.gif
 ```
 
 ## astryx-word.gif
 
-<img src="../config/gifs/astryx-word.gif" width="192" alt="The Astryx wordmark, tilted 45 degrees, scrolling right to left across the panel">
-<img src="masked/astryx-word.gif" width="192" alt="The Astryx wordmark, tilted 45 degrees, scrolling right to left across the panel, behind the mask">
+<img src="../config/gifs/astryx-word.gif" width="192" alt="The Astryx wordmark crossing the panel diagonally, from bottom-right to top-left">
+<img src="masked/astryx-word.gif" width="192" alt="The Astryx wordmark crossing the panel diagonally, from bottom-right to top-left, behind the mask">
 
-The wordmark enters from the right, crosses, and leaves at the left before
-starting again — a flat marquee, no wrap-around. It is rasterized to the panel's
-width and then turned 45°, which makes it 56×57: tilted, but still crossing
-horizontally, and still clear of the panel's edges.
+The wordmark crosses the panel on the diagonal: it enters at the bottom-right
+corner, passes through the middle, and leaves at the top-left before starting
+again — a flat marquee, no wrap-around. The whole marquee is turned 45°, the
+word and its path together, which is why it is rendered on a 92×92 square and
+the panel cut out of the middle.
 
-`119 frames · 5.0 s · 70.4 KB · preset 6`
+`156 frames · 5.0 s · 97.1 KB · preset 6`
 
 ```sh
 python3 retime.py -q -t 5 ../config/gifs/astryx-word.gif

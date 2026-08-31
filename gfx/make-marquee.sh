@@ -11,11 +11,12 @@
 # frames a full pass takes. Anything taller than 64 px is cropped evenly
 # top and bottom.
 #
-# With -r/--rotate the image is turned first and the marquee then runs on
-# what that leaves: a turned image is a bigger one — a 64x12 word at 45
-# degrees needs 54x54 — so the travel, and with it the frame count, grows
-# with the angle. The word still crosses the canvas horizontally; it is
-# the word that is tilted, not its path.
+# -r/--rotate turns the whole marquee: the word, the direction it travels
+# and, in cylinder mode, the axis the drum turns about. It is done by
+# rendering onto a canvas big enough that the panel still sits inside it
+# once turned — 64 * (|cos| + |sin|), so 91x91 at 45 degrees — and then
+# turning each finished frame and cropping the panel out of the middle.
+# The travel grows with that canvas, and with it the frame count.
 #
 # With -c/--cylinder the image instead rides the surface of a vertical
 # drum whose front half spans the canvas: columns foreshorten toward the
@@ -39,8 +40,9 @@ $SYNOPSIS
 Turn a PNG into a 64x64 animated marquee GIF.
 
   -c, --cylinder      render on a rotating drum instead of a flat surface
-  -r, --rotate DEG    turn the image this many degrees, clockwise on
-                      screen, before scrolling it              (default: 0)
+  -r, --rotate DEG    turn the marquee this many degrees, clockwise on
+                      screen: the word, its direction of travel, and the
+                      drum's axis under --cylinder             (default: 0)
   -s, --shade N       rim shading depth for --cylinder, 0..1  (default: 0.8)
                       0 disables shading
   -h, --help          show this help and exit
@@ -106,26 +108,28 @@ fi
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
-# Turning the image is done once, here, so that everything below — the
-# dimensions, the travel, the strip wrapped round the drum — is measured on
-# what will actually be scrolled. The corners it gains have to stay clear, or
-# they would paint a box of background over the canvas.
-if [[ "$ROTATE" != 0 ]]; then
-  $IM "$IN" -background none -alpha set -rotate "$ROTATE" "$TMP/rotated.png"
-  IN="$TMP/rotated.png"
-fi
+# Everything is rendered on a square big enough to still cover the panel once
+# it is turned — 64 * (|cos| + |sin|) — and the panel is cropped out of the
+# middle at the end. Rounded up to an even number so the drum's radius stays
+# whole.
+WORK=$(awk -v s="$CANVAS_W" -v deg="$ROTATE" 'BEGIN {
+  r = deg * atan2(0, -1) / 180; c = cos(r); n = sin(r)
+  if (c < 0) c = -c; if (n < 0) n = -n
+  w = int(s * (c + n) + 0.999); if (w % 2) w++
+  print w
+}')
 
 # Source image dimensions
 DIMS=$($IM "$IN" -format '%w %h' info: 2>/dev/null || identify -format '%w %h' "$IN")
 read -r IMG_W IMG_H <<< "$DIMS"
 
-# Vertically centered
-Y=$(( (CANVAS_H - IMG_H) / 2 ))
+# Vertically centered on the working canvas
+Y=$(( (WORK - IMG_H) / 2 ))
 
 if (( CYLINDER )); then
   # Drum radius: the visible front half (pi*R of surface arc) projects
   # onto the full canvas width, since x = R*sin(angle) spans [-R, R].
-  R=$(( CANVAS_W / 2 ))
+  R=$(( WORK / 2 ))
   ARC=$(awk -v r="$R" 'BEGIN { pi = atan2(0, -1); printf "%d", int(pi*r) + 1 }')
   HALF_ARC=$(awk -v r="$R" 'BEGIN { pi = atan2(0, -1); printf "%.6f", pi*r/2 }')
 
@@ -133,7 +137,7 @@ if (( CYLINDER )); then
   # width: near the rim several source columns squeeze into one output
   # pixel, and point sampling there would shimmer.
   SS=4
-  SSW=$(( CANVAS_W * SS ))
+  SSW=$(( WORK * SS ))
   SS_CX=$(awk -v w="$SSW" 'BEGIN { printf "%.1f", (w - 1)/2 }')
   SS_HW=$(( SSW / 2 ))
 
@@ -144,7 +148,7 @@ if (( CYLINDER )); then
   # The unrolled drum surface: the image with one visible-arc of
   # background on each side. Frame o views the window [o, o+ARC).
   STRIP_W=$(( 2*ARC + IMG_W ))
-  $IM -size "${STRIP_W}x${CANVAS_H}" xc:"$BG" \
+  $IM -size "${STRIP_W}x${WORK}" xc:"$BG" \
       "$IN" -geometry "$(printf '%+d%+d' "$ARC" "$Y")" -composite \
       "$TMP/strip.png"
 
@@ -157,29 +161,37 @@ if (( CYLINDER )); then
   #   xx = position across the drum face in [-1, 1]
   #   src column = o + HALF_ARC + R*asin(xx)
   for ((o = 0; o < TRAVEL; o++)); do
-    $IM -size "${SSW}x${CANVAS_H}" xc: "$TMP/strip.png" \
+    $IM -size "${SSW}x${WORK}" xc: "$TMP/strip.png" \
         -virtual-pixel edge -channel RGB \
         -fx "xx=(i-${SS_CX})/${SS_HW}; v.p{ ${o}+${HALF_ARC}+${R}*asin(xx), j } * (${SHADE_FLOOR}+${SHADE}*sqrt(1-xx*xx))" \
-        +channel -resize "${CANVAS_W}x${CANVAS_H}!" \
+        +channel -resize "${WORK}x${WORK}!" \
         "$TMP/frame_$(printf '%04d' "$o").png"
   done
 else
   # Full travel: from just off the right edge to fully off the left edge
-  TRAVEL=$(( CANVAS_W + IMG_W ))
+  TRAVEL=$(( WORK + IMG_W ))
 
   for ((i = 0; i < TRAVEL; i++)); do
-    X=$(( CANVAS_W - 1 - i ))   # starts at 95 (entering right), ends at -IMG_W+1... exits left
-    $IM -size "${CANVAS_W}x${CANVAS_H}" xc:"$BG" \
+    X=$(( WORK - 1 - i ))   # starts at the right edge, ends fully off the left
+    $IM -size "${WORK}x${WORK}" xc:"$BG" \
         "$IN" -geometry "$(printf '%+d%+d' "$X" "$Y")" -composite \
         "$TMP/frame_$(printf '%04d' "$i").png"
   done
 fi
 
-# Assemble frames into a looping GIF
+# Assemble frames into a looping GIF. Turning happens here, on every frame at
+# once: the marquee was rendered square and oversized, so a turn followed by a
+# centre crop leaves the panel covered to the corners whatever the angle.
 mkdir -p "$(dirname "$OUT")"
-$IM -delay "$DELAY" -loop 0 "$TMP"/frame_*.png "$OUT"
+if [[ "$ROTATE" != 0 ]]; then
+  $IM -delay "$DELAY" -loop 0 "$TMP"/frame_*.png \
+      -background "$BG" -rotate "$ROTATE" \
+      -gravity center -extent "${CANVAS_W}x${CANVAS_H}" "$OUT"
+else
+  $IM -delay "$DELAY" -loop 0 "$TMP"/frame_*.png "$OUT"
+fi
 
 MODE=""
 if (( CYLINDER )); then MODE=", cylinder, shade=$SHADE"; fi
-if [[ "$ROTATE" != 0 ]]; then MODE="$MODE, rotated ${ROTATE}°, ${IMG_W}x${IMG_H}"; fi
+if [[ "$ROTATE" != 0 ]]; then MODE="$MODE, turned ${ROTATE}° on a ${WORK}x${WORK} canvas"; fi
 echo "Wrote $OUT ($TRAVEL frames, ${DELAY}cs/frame, bg=$BG$MODE)"

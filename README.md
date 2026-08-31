@@ -302,17 +302,22 @@ gfx/make-marquee.sh -c -r 45 gfx/out/astryx-word.png config/gifs/astryx-word-c.g
 gfx/retime.py -t 5 config/gifs/astryx-word-c.gif
 ```
 
-`-r/--rotate` turns the word before it is scrolled, clockwise on screen, and
-both targets use `-r $(ANGLE)` — 45° — which is the `ANGLE` at the top of
-`gfx/Makefile`. The word still crosses horizontally; it is the word that is
-tilted, not its path. Turning also makes it bigger: 64×12 becomes 56×57, which
-still clears the panel's edges (the ink runs rows 4–57 of 64).
+`-r/--rotate` turns the whole marquee, clockwise on screen — the word, the
+direction it travels, and the axis the drum turns about. Both targets use
+`-r $(ANGLE)`, and `ANGLE := 45` at the top of `gfx/Makefile` is the one place
+it is set. The flat word then crosses from the bottom-right corner to the
+top-left, and the drum's surface angles away towards the top-left and
+bottom-right corners instead of towards the left and right edges.
 
-The travel is 64 + the image width for the flat one and the drum's visible arc
-plus the image width for the cylinder, so the turn changes the frame count too —
-120 and 157 frames, 4.8 s and 6.28 s at 4cs. `retime.py` brings both to exactly
-5 s by scaling their delays, which leaves 10 ms of difference between frames at
-25 fps.
+It works by rendering onto a square big enough that the panel still sits inside
+it once turned — `64 × (|cos| + |sin|)`, so 92×92 at 45° — then turning each
+finished frame and cropping the panel out of the middle, which is why the frame
+count grows with the angle: 156 frames flat and 209 round the drum.
+
+`retime.py` brings the flat one to 5 s. The drum gets **10 s**: 209 frames in 5
+would mean 2-3cs a frame, and the panel cannot decode forty of them a second, so
+it would not honour the timing anyway. Ten keeps it near the 4cs everything else
+runs at and is still whole passes in a playlist slot.
 
 #### Letters
 
