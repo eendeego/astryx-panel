@@ -346,14 +346,21 @@ It composes with `--rotate`.
 #### Offsetting the logo mark
 
 ```sh
-gfx/make-offset.py -d in   # -> config/gifs/astryx-inward.gif
-gfx/make-offset.py -d out  # -> config/gifs/astryx-outward.gif
+gfx/make-offset.py -d both  # -> config/gifs/astryx-inout.gif
+gfx/make-offset.py -d in    # -> config/gifs/astryx-inward.gif
+gfx/make-offset.py -d out   # -> config/gifs/astryx-outward.gif
 ```
 
 Takes `gfx/raw/astryx.svg` and walks its outline inward: the mark is held, then
 thins until its four lobes come apart and dwindle away. **Outward is that same
 run in reverse time**, holds included — the lobes appear out of an empty panel,
-close up into the mark, and it is held. The two cut together back to back.
+close up into the mark, and it is held.
+
+`-d both` is the one the Makefile builds: the two runs in sequence, the mark
+eaten away and grown back in a single loop. Neither turn repeats a frame — the
+empty panel is not drawn twice at the bottom of the run, and the whole mark is
+not drawn again at the end, where the loop is about to hold on it anyway. `in`
+and `out` still work if you want them apart, and they cut together back to back.
 
 The offsets are exact, not pixel erosion: a stroke sits centred on an outline,
 so stroking it in the background colour at twice the wanted distance eats

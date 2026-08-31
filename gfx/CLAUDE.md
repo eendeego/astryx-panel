@@ -217,7 +217,11 @@ any distance, which no MinFilter/MaxFilter pass would be.
 
 **Only one animation is rendered.** `--direction out` reverses the frame list,
 holds included, so outward is inward read backwards — checked frame by frame,
-0/255 difference. Growing the mark by stroking in the fill colour was the first
+0/255 difference. `both`, which is what the Makefile builds, concatenates the
+two: `[first] * hold + travel + travel[-2:0:-1]`, where that slice is the way
+back with both ends dropped, so the empty panel is not drawn twice at the turn
+and the mark is not drawn again where the hold is about to redraw it. 73 frames
+against inward's 45. Growing the mark by stroking in the fill colour was the first
 attempt and is not what is wanted: the mark already covers 83% of the panel, so
 dilating it merely floods the panel in 5.82px and looks nothing like the
 inward run.

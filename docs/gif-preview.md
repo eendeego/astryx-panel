@@ -4,7 +4,7 @@
 # GIF preview
 
 Every animation in `config/gifs/`, which is what `bin/provision.sh` puts on the
-panel and `bin/gen-presets.sh` turns into presets. 7 of them, 437 KB in total.
+panel and `bin/gen-presets.sh` turns into presets. 6 of them, 436 KB in total.
 
 All of them are 64×64, the panel's own size: WLED clips anything larger and
 scales smaller ones up by whole numbers only.
@@ -61,34 +61,22 @@ Flat: the word lies across the panel, 64×12, letters about 12 px tall.
 python3 make-assemble.py --rotate 0 out/letters/ ../config/gifs/astryx-assemble.gif
 ```
 
-## astryx-inward.gif
+## astryx-inout.gif
 
-<img src="../config/gifs/astryx-inward.gif" width="192" alt="The logo mark thinning until its four lobes come apart and vanish">
-<img src="masked/astryx-inward.gif" width="192" alt="The logo mark thinning until its four lobes come apart and vanish, behind the mask">
+<img src="../config/gifs/astryx-inout.gif" width="192" alt="The logo mark thinning away to nothing and growing back">
+<img src="masked/astryx-inout.gif" width="192" alt="The logo mark thinning away to nothing and growing back, behind the mask">
 
 The mark is held, then its outline steps inward: it thins, comes apart into its
-four lobes, and they dwindle to nothing. 14.06 px of travel, which is measured
-rather than guessed — the script bisects for the first distance that leaves the
-panel empty.
+four lobes, and they dwindle to nothing — then the same run plays backwards and
+the lobes swell and close up into the mark again. 14.06 px each way, measured
+rather than guessed: the script bisects for the first distance that leaves the
+panel empty. Neither turn draws a frame twice, so the loop has no stutter at the
+empty panel or at the hold.
 
-`30 frames · 1.8 s · 22.4 KB · preset 4`
-
-```sh
-python3 make-offset.py -d in raw/astryx.svg ../config/gifs/astryx-inward.gif
-```
-
-## astryx-outward.gif
-
-<img src="../config/gifs/astryx-outward.gif" width="192" alt="Four lobes appearing from an empty panel and closing up into the logo mark">
-<img src="masked/astryx-outward.gif" width="192" alt="Four lobes appearing from an empty panel and closing up into the logo mark, behind the mask">
-
-The same run in reverse time: lobes appear out of an empty panel, swell, close
-up into the mark, and it is held.
-
-`30 frames · 1.8 s · 22.2 KB · preset 5`
+`58 frames · 2.9 s · 43.2 KB · preset 4`
 
 ```sh
-python3 make-offset.py -d out raw/astryx.svg ../config/gifs/astryx-outward.gif
+python3 make-offset.py -d both raw/astryx.svg ../config/gifs/astryx-inout.gif
 ```
 
 ## astryx-word-c.gif
@@ -101,7 +89,7 @@ dim at the rim where the surface angles away, and move fastest across the
 middle. The longest of the set, because a full turn is the visible arc plus the
 word's own width.
 
-`165 frames · 6.6 s · 138.5 KB · preset 6`
+`165 frames · 6.6 s · 138.5 KB · preset 5`
 
 ```sh
 ./make-marquee.sh -c out/astryx-word.png ../config/gifs/astryx-word-c.gif
@@ -116,7 +104,7 @@ The wordmark enters from the right, crosses, and leaves at the left before
 starting again — a flat marquee, no wrap-around. The word is rasterized to the
 panel's width, so it is 64×12 and rides the middle of the panel.
 
-`128 frames · 5.1 s · 99.5 KB · preset 7`
+`128 frames · 5.1 s · 99.5 KB · preset 6`
 
 ```sh
 ./make-marquee.sh out/astryx-word.png ../config/gifs/astryx-word.gif
@@ -127,7 +115,7 @@ panel's width, so it is 64×12 and rides the middle of the panel.
 ## How they play
 
 `bin/gen-presets.sh` gives each GIF an Image-effect preset, numbered in the
-order above, and collects them into the "All GIFs" playlist as preset 8 — 10
+order above, and collects them into the "All GIFs" playlist as preset 7 — 10
 seconds each.
 
 That playlist is the boot preset (`def.ps` in `config/cfg.json`), so it is what

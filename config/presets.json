@@ -151,7 +151,7 @@
     ]
   },
   "4": {
-    "n": "astryx-inward",
+    "n": "astryx-inout",
     "on": true,
     "bri": 128,
     "transition": 7,
@@ -169,7 +169,7 @@
         "on": true,
         "frz": false,
         "bri": 255,
-        "n": "astryx-inward.gif",
+        "n": "astryx-inout.gif",
         "col": [
           [
             255,
@@ -201,56 +201,6 @@
     ]
   },
   "5": {
-    "n": "astryx-outward",
-    "on": true,
-    "bri": 128,
-    "transition": 7,
-    "mainseg": 0,
-    "seg": [
-      {
-        "id": 0,
-        "start": 0,
-        "stop": 64,
-        "startY": 0,
-        "stopY": 64,
-        "grp": 1,
-        "spc": 0,
-        "of": 0,
-        "on": true,
-        "frz": false,
-        "bri": 255,
-        "n": "astryx-outward.gif",
-        "col": [
-          [
-            255,
-            255,
-            255
-          ],
-          [
-            0,
-            0,
-            0
-          ],
-          [
-            0,
-            0,
-            0
-          ]
-        ],
-        "fx": 53,
-        "sx": 128,
-        "ix": 0,
-        "pal": 0,
-        "sel": true,
-        "rev": false,
-        "mi": false,
-        "rY": false,
-        "mY": false,
-        "tp": false
-      }
-    ]
-  },
-  "6": {
     "n": "astryx-word-c",
     "on": true,
     "bri": 128,
@@ -300,7 +250,7 @@
       }
     ]
   },
-  "7": {
+  "6": {
     "n": "astryx-word",
     "on": true,
     "bri": 128,
@@ -350,7 +300,7 @@
       }
     ]
   },
-  "8": {
+  "7": {
     "n": "All GIFs",
     "playlist": {
       "ps": [
@@ -359,11 +309,9 @@
         3,
         4,
         5,
-        6,
-        7
+        6
       ],
       "dur": [
-        100,
         100,
         100,
         100,

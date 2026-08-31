@@ -34,10 +34,9 @@ ASSEMBLIES := $(GIFS)/astryx-assemble.gif \
               $(GIFS)/astryx-assemble+45.gif \
               $(GIFS)/astryx-assemble-45.gif
 
-# The logo mark's outline walked in until it goes out, and out until it
-# takes the panel.
-OFFSETS := $(GIFS)/astryx-inward.gif \
-           $(GIFS)/astryx-outward.gif
+# The logo mark's outline walked in until the panel is empty, then back
+# out until the mark has it again — one loop, not two files.
+OFFSET_GIF := $(GIFS)/astryx-inout.gif
 
 # The gap file is named for the board, not for us: WLED 16.0.1 reads
 # /2d-gaps.json off its filesystem and no config field points at it, so
@@ -48,7 +47,7 @@ GENERATED := $(GAPFILE) \
              $(GIFS)/astryx-word.gif \
              $(GIFS)/astryx-word-c.gif \
              $(ASSEMBLIES) \
-             $(OFFSETS)
+             $(OFFSET_GIF)
 
 TARGETS := $(OUT)/astryx-word.png \
            $(OUT)/letters/letters.json \
@@ -96,11 +95,8 @@ $(GIFS)/astryx-assemble-45.gif:  ROTATE := -45
 $(ASSEMBLIES): $(OUT)/letters/letters.json $(ASSEMBLE) | $(GIFS)
 	python3 $(ASSEMBLE) --rotate $(ROTATE) $(dir $<) $@
 
-$(GIFS)/astryx-inward.gif:  WAY := in
-$(GIFS)/astryx-outward.gif: WAY := out
-
-$(OFFSETS): $(RAW)/astryx.svg $(OFFSET) | $(GIFS)
-	python3 $(OFFSET) -d $(WAY) $< $@
+$(OFFSET_GIF): $(RAW)/astryx.svg $(OFFSET) | $(GIFS)
+	python3 $(OFFSET) -d both $< $@
 
 $(OUT) $(GIFS):
 	mkdir -p $@

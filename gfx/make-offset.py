@@ -8,6 +8,11 @@ out of an empty panel, swell, close up into the mark, and it is held.
 The two are one animation read in either direction, so they cut together
 back to back.
 
+--direction both does exactly that in one file: held, eaten away, grown
+back, looping. Neither seam repeats a frame, and the cycle stops one step
+short of the whole mark so that the loop lands on the hold rather than
+sitting still for a frame longer than it was asked to.
+
 Offsetting is done by stroking, not by any pixel erosion: a stroke sits
 centred on the outline, so painting the outline in the background colour
 with a stroke twice as wide as the wanted distance eats exactly that
@@ -23,7 +28,8 @@ Usage:
   ./make-offset.py [options] [input.svg] [output.gif]
 
   -d, --direction WAY  in to shrink the mark away, out for the same
-                       frames in reverse time                 (default: in)
+                       frames in reverse time, both for one after
+                       the other in a loop                    (default: in)
       --depth N        how far to travel, in panel pixels
                              (default: 0, meaning until the panel is empty)
   -s, --size N         canvas is NxN pixels                    (default: 64)
@@ -39,8 +45,8 @@ Usage:
   -q, --quiet          suppress the per-frame listing on stderr
 
   input.svg   source mark        (default: gfx/raw/astryx.svg)
-  output.gif  file to write
-                  (default: config/gifs/astryx-<direction>ward.gif)
+  output.gif  file to write     (default: config/gifs/astryx-inward.gif,
+                  -outward.gif or -inout.gif, after --direction)
 
 Missing parent directories are created for the GIF.
 """
@@ -183,9 +189,11 @@ def main():
     )
     p.add_argument("svg", nargs="?", type=Path, default=DEFAULT_SVG, help="source mark")
     p.add_argument("output", nargs="?", type=Path,
-                   help="GIF to write (default: config/gifs/astryx-<direction>ward.gif)")
-    p.add_argument("-d", "--direction", choices=("in", "out"), default="in",
-                   help="in shrinks the mark away, out is the same frames reversed")
+                   help="GIF to write (default: config/gifs/astryx-inward.gif, "
+                        "-outward.gif or -inout.gif, after --direction)")
+    p.add_argument("-d", "--direction", choices=("in", "out", "both"), default="in",
+                   help="in shrinks the mark away, out is the same frames reversed, "
+                        "both runs one into the other")
     p.add_argument("--depth", type=float, default=0,
                    help="how far to travel in panel pixels, 0 to measure it")
     p.add_argument("-s", "--size", type=int, default=64, help="canvas edge in pixels")
@@ -232,7 +240,8 @@ def main():
         except ValueError as exc:
             p.error(f"--{name}: {exc}")
     if args.output is None:
-        args.output = OUT_DIR / f"astryx-{args.direction}ward.gif"
+        stem = "inout" if args.direction == "both" else f"{args.direction}ward"
+        args.output = OUT_DIR / f"astryx-{stem}.gif"
 
     viewbox, shapes = read_shape(args.svg)
     with tempfile.TemporaryDirectory() as tmp:
@@ -252,9 +261,17 @@ def main():
     # Held mark first, then the shape eating itself away. Outward is that
     # whole run in reverse time, holds included, so the mark arrives and
     # then sits rather than sitting and then leaving.
-    frames = [frames[0]] * args.hold + frames
-    if args.direction == "out":
-        frames.reverse()
+    travel = frames
+    if args.direction == "both":
+        # ... and both is the one run into the other. travel[-2:0:-1] is the
+        # way back with its ends dropped: the empty panel is not drawn twice
+        # at the turn, and the whole mark is not drawn again at the end, where
+        # the loop is about to hold on it anyway.
+        frames = [travel[0]] * args.hold + travel + travel[-2:0:-1]
+    else:
+        frames = [travel[0]] * args.hold + travel
+        if args.direction == "out":
+            frames.reverse()
 
     # One palette for the run, taken from the busiest frame; see the same
     # reasoning in make-assemble.py.
@@ -268,7 +285,8 @@ def main():
     with Image.open(args.output) as written:
         stored = written.n_frames
 
-    order = "held then shrinking" if args.direction == "in" else "growing then held"
+    order = {"in": "held then shrinking", "out": "growing then held",
+             "both": "held, shrinking, growing back"}[args.direction]
     print(f"Wrote {args.output} ({len(frames)} frames at {args.delay}cs = "
           f"{len(frames) * args.delay / 100:.1f}s, {args.hold} held + {args.frames} "
           f"over {depth:.2f}px, {order}, {stored} stored)")
