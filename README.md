@@ -14,6 +14,7 @@ astryx-panel/                  # this repo
 ├── bin/flash.sh               # full esptool flash: bootloader + partitions + firmware
 ├── bin/provision.sh           # push cfg.json, GIFs and presets to a running board
 ├── bin/gen-presets.sh         # build config/presets.json from config/gifs/*.gif
+├── bin/gen-gif-preview.sh     # build docs/gif-preview.md from config/gifs/*.gif
 ├── bin/check-env.sh           # prerequisite checker
 ├── config/platformio_override.ini  # board config (source of truth)
 ├── config/wled.conf           # WLED release to build (WLED_VERSION)
@@ -27,7 +28,7 @@ astryx-panel/                  # this repo
 │   └── out/                   # intermediates (git-ignored)
 ├── WLED/                      # upstream WLED checkout (git-ignored, separate repo)
 │   └── platformio_override.ini -> ../config/platformio_override.ini
-├── docs/gif-preview.md        # every GIF in config/gifs/, shown and described
+├── docs/gif-preview.md        # generated: every GIF in config/gifs/, shown and described
 ├── docs/SETUP.md              # the same settings as WLED UI fields, for setting a board up by hand
 ├── README.md
 └── CLAUDE.md                  # context for Claude Code sessions
@@ -181,7 +182,18 @@ from the scripts in `gfx/`, described below, which write their output into
 `config/gifs/`. Re-run `bin/gen-presets.sh` afterwards so the presets match.
 
 `docs/gif-preview.md` shows what each of them looks like, with its frame count,
-duration and the command that rebuilds it.
+duration, preset number and the command that rebuilds it. It is generated:
+
+```sh
+bin/gen-gif-preview.sh          # rewrite it from config/gifs/
+bin/gen-gif-preview.sh --check  # say whether it is stale, change nothing
+```
+
+The numbers come from the files, the preset numbers from `config/presets.json`,
+and each rebuild command from `gfx/Makefile` itself (via `make -Bn`), so none of
+it can drift from the build. What a GIF *is* can't be measured, so the
+description under each heading is carried over from the existing file — write
+one for a new GIF and re-running keeps it.
 
 ## Panel artwork
 
