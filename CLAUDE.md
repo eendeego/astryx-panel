@@ -80,9 +80,10 @@ something else. Do not vendor WLED code into this repo.
   `bin/gen-gif-preview.sh` (`--check` reports staleness): numbers from the
   files, presets from `presets.json`, commands from `gfx/Makefile` via
   `make -Bn`. It also writes `docs/masked/*.gif`: each GIF with
-  `config/2d-gaps.json` applied, the disabled pixels painted `#c0c0c0`
-  (`-m` for another colour, `--no-mask` to skip), so the document shows what
-  the panel looks like behind the mask. The per-GIF descriptions and alt text
+  `config/2d-gaps.json` applied, the disabled pixels painted `#c0c0c0` and a
+  3px border of the same colour around it, corners rounded 2px and cut with a
+  transparent palette index (`-m`, `--border`, `--radius`, `--no-mask`), so the
+  document shows what the panel looks like behind the mask. The per-GIF descriptions and alt text
   are prose and are carried over from the existing file on each run —
   everything else in it is overwritten, so edit only those.
 - `docs/SETUP.md` is the manual path: every panel setting as the field it is in

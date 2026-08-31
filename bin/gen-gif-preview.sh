@@ -5,14 +5,18 @@
 #
 # Each GIF is shown twice: as generated, and as the panel wears it, with
 # config/2d-gaps.json applied so the LEDs the mask covers are painted flat.
-# Those masked copies are written to docs/masked/ and are versioned, since the
+# The masked copy is given a border in the same colour and its corners are
+# rounded, so it reads as the panel behind its mask rather than as a second
+# animation. They are written to docs/masked/ and are versioned, since the
 # document has to render from the repository.
 #
 # Usage: ./gen-gif-preview.sh [options]
 #   -o, --output <file>  Write here instead of docs/gif-preview.md
 #   -w, --width <px>     Displayed width of each preview     (default: 192)
-#   -m, --mask-color <c> Colour for pixels the gap file disables
-#                                                          (default: #c0c0c0)
+#   -m, --mask-color <c> Colour for pixels the gap file disables, and for the
+#                        border around them                (default: #c0c0c0)
+#       --border <px>    Border around the masked copy          (default: 3)
+#       --radius <px>    Corner radius of that border           (default: 2)
 #       --no-mask        Skip the masked copies entirely
 #       --check          Write nothing; exit 1 if anything is out of date
 #   -h, --help           Show this help
@@ -33,28 +37,35 @@ WIDTH=192
 CHECK=0
 MASK_COLOR="#c0c0c0"
 DO_MASK=1
+BORDER=3
+RADIUS=2
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -o|--output) OUT="$2"; shift 2 ;;
     -w|--width)  WIDTH="$2"; shift 2 ;;
     -m|--mask-color) MASK_COLOR="$2"; shift 2 ;;
+    --border)    BORDER="$2"; shift 2 ;;
+    --radius)    RADIUS="$2"; shift 2 ;;
     --no-mask)   DO_MASK=0; shift ;;
     --check)     CHECK=1; shift ;;
-    -h|--help)   sed -n '2,26{s/^# \{0,1\}//p;}' "$0"; exit 0 ;;
+    -h|--help)   sed -n '2,29{s/^# \{0,1\}//p;}' "$0"; exit 0 ;;
     *) echo "Unknown option: $1 (see --help)" >&2; exit 1 ;;
   esac
 done
 [[ "$WIDTH" =~ ^[0-9]+$ ]] && (( 10#$WIDTH > 0 )) || { echo "ERROR: --width must be a positive integer, got: $WIDTH" >&2; exit 1; }
+[[ "$BORDER" =~ ^[0-9]+$ ]] || { echo "ERROR: --border must be a whole number of pixels, got: $BORDER" >&2; exit 1; }
+[[ "$RADIUS" =~ ^[0-9]+$ ]] || { echo "ERROR: --radius must be a whole number of pixels, got: $RADIUS" >&2; exit 1; }
 command -v python3 >/dev/null || { echo "ERROR: python3 is required" >&2; exit 1; }
 python3 -c 'import PIL' 2>/dev/null || { echo "ERROR: Pillow is required (pip install pillow)" >&2; exit 1; }
 
-python3 - "$REPO_DIR" "$OUT" "$WIDTH" "$CHECK" "$MASK_COLOR" "$DO_MASK" <<'GENPREVIEW'
+python3 - "$REPO_DIR" "$OUT" "$WIDTH" "$CHECK" "$MASK_COLOR" "$DO_MASK" "$BORDER" "$RADIUS" <<'GENPREVIEW'
 import io, json, os, re, subprocess, sys, textwrap
 from pathlib import Path
-from PIL import Image, ImageColor, ImageSequence
+from PIL import Image, ImageChops, ImageColor, ImageDraw, ImageSequence
 
 repo, out_path, width, check = Path(sys.argv[1]), Path(sys.argv[2]), int(sys.argv[3]), sys.argv[4] == "1"
 do_mask = sys.argv[6] == "1"
+border, radius = int(sys.argv[7]), int(sys.argv[8])
 try:
     mask_colour = ImageColor.getrgb(sys.argv[5])
 except ValueError as exc:
@@ -111,27 +122,52 @@ def load_gap():
     img.putdata([0 if v > 0 else 255 for v in gaps[:pw * ph]])
     return img
 
+# The corners are cut out of every frame with one shared mask, and the index
+# they are set to is left out of the palette so it can carry transparency.
+CLEAR = 255
+framed = (pw + 2 * border, ph + 2 * border)
+outside = None
+if radius:
+    inside = Image.new("L", framed, 0)
+    ImageDraw.Draw(inside).rounded_rectangle(
+        [(0, 0), (framed[0] - 1, framed[1] - 1)], radius=radius, fill=255)
+    outside = ImageChops.invert(inside)
+
 def render_masked(src, dest, mask):
     """Write src with the disabled pixels painted flat. -> written|unchanged."""
     frames, durations = [], []
     flat = Image.new("RGB", (pw, ph), mask_colour)
     with Image.open(src) as im:
         for frame in ImageSequence.Iterator(im):
-            frames.append(Image.composite(flat, frame.convert("RGB"), mask))
+            panel = Image.composite(flat, frame.convert("RGB"), mask)
+            if border:
+                # the border is the mask carrying on past the edge of the panel
+                bezel = Image.new("RGB", framed, mask_colour)
+                bezel.paste(panel, (border, border))
+                panel = bezel
+            frames.append(panel)
             durations.append(frame.info.get("duration", 40))
 
     # One palette for the run, taken from the busiest frame, as the generators
     # in gfx/ do: per-frame palettes make the flat area crawl.
     richest = max(frames, key=lambda f: len(f.getcolors(maxcolors=1 << 16) or [1]))
-    palette = richest.quantize(colors=256, method=Image.Quantize.MEDIANCUT)
+    colours = CLEAR if outside is not None else 256
+    palette = richest.quantize(colors=colours, method=Image.Quantize.MEDIANCUT)
     quantized = [f.quantize(palette=palette, dither=Image.Dither.NONE) for f in frames]
+    if outside is not None:
+        for q in quantized:
+            q.paste(CLEAR, mask=outside)
 
     # Fewer frames may reach the file than went in: flattening the masked pixels
     # makes neighbouring frames identical, and Pillow merges a run of those into
     # one with their delays summed. The duration is unchanged, which is what counts.
     buf = io.BytesIO()
+    # disposal 1 throughout: the cut corners are transparent in every frame, so
+    # "leave what was there" leaves the page showing, where "restore to the
+    # background colour" invites a flash of palette index 0 between frames
+    extra = {"transparency": CLEAR} if outside is not None else {}
     quantized[0].save(buf, format="GIF", save_all=True, append_images=quantized[1:],
-                      duration=durations, loop=0, disposal=1, optimize=False)
+                      duration=durations, loop=0, disposal=1, optimize=False, **extra)
     data = buf.getvalue()
     if dest.is_file() and dest.read_bytes() == data:
         return "unchanged"
@@ -229,8 +265,10 @@ doc += ["Frame counts are what is *stored* — runs of identical frames are merg
 if gap_mask is not None:
     doc += [f"Each one is shown twice: **as generated** on the left, and **behind the mask**",
             f"on the right, where the {gap_dark} pixels `config/2d-gaps.json` switches off are",
-            f"painted `{mask_hex}` — what the logo-shaped cut-out leaves visible. Those",
-            "copies live in `docs/masked/` and are rewritten by this script.", ""]
+            f"painted `{mask_hex}` — what the logo-shaped cut-out leaves visible. The masked",
+            f"copy carries {border}px of the same colour around it, corners rounded {radius}px, so it",
+            "reads as a panel behind a mask rather than as a second animation. Those copies",
+            "live in `docs/masked/` and are rewritten by this script.", ""]
 
 hand_dropped = []
 for name in gifs:
@@ -251,7 +289,8 @@ for name in gifs:
             masked_written.append(name)
         else:
             masked_same += 1
-        images.append(f'<img src="masked/{name}" width="{width}" '
+        # shown at the same scale as the panel beside it, border included
+        images.append(f'<img src="masked/{name}" width="{round(width * framed[0] / pw)}" '
                       f'alt="{alts.get(name, name)}{MASK_ALT}">')
 
     doc += [f"## {name}", ""] + images + ["",

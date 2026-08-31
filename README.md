@@ -203,15 +203,23 @@ duration, preset number and the command that rebuilds it. It is generated:
 bin/gen-gif-preview.sh                  # rewrite it from config/gifs/
 bin/gen-gif-preview.sh --check          # say whether it is stale, change nothing
 bin/gen-gif-preview.sh -m '#808080'     # a different colour for the masked pixels
+bin/gen-gif-preview.sh --border 0       # no border around the masked copy
+bin/gen-gif-preview.sh --radius 4       # rounder corners on that border
 bin/gen-gif-preview.sh --no-mask        # source GIFs only, no masked copies
 ```
 
 Each GIF appears twice: as generated, and as the panel wears it, with
 `config/2d-gaps.json` applied so the 670 LEDs behind the mask are painted
-`#c0c0c0`. Those masked copies are written to `docs/masked/` and versioned,
-since the document has to render straight from the repository. They are
-re-derived from the GIF and the gap file every run and only rewritten when the
-bytes change, so regenerating costs nothing in the history.
+`#c0c0c0`. The masked copy carries 3px of that same colour around it with its
+corners rounded by 2px — 70×70 rather than 64×64 — so it reads as a panel behind
+a mask rather than as a second animation, and it is shown at the same scale as
+the panel beside it. The rounded corners are cut out with a transparent palette
+index, so they take the colour of whatever the page is.
+
+Those masked copies are written to `docs/masked/` and versioned, since the
+document has to render straight from the repository. They are re-derived from
+the GIF and the gap file every run and only rewritten when the bytes change, so
+regenerating costs nothing in the history.
 
 The numbers come from the files, the preset numbers from `config/presets.json`,
 and each rebuild command from `gfx/Makefile` itself (via `make -Bn`), so none of

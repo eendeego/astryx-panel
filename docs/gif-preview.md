@@ -16,13 +16,15 @@ run from `gfx/`; `gfx/generate-all.sh <target>` runs one from anywhere, and
 
 Each one is shown twice: **as generated** on the left, and **behind the mask**
 on the right, where the 670 pixels `config/2d-gaps.json` switches off are
-painted `#c0c0c0` — what the logo-shaped cut-out leaves visible. Those
-copies live in `docs/masked/` and are rewritten by this script.
+painted `#c0c0c0` — what the logo-shaped cut-out leaves visible. The masked
+copy carries 3px of the same colour around it, corners rounded 2px, so it
+reads as a panel behind a mask rather than as a second animation. Those copies
+live in `docs/masked/` and are rewritten by this script.
 
 ## astryx-assemble+45.gif
 
 <img src="../config/gifs/astryx-assemble+45.gif" width="192" alt="The same assembly with the word standing at 45 degrees">
-<img src="masked/astryx-assemble+45.gif" width="192" alt="The same assembly with the word standing at 45 degrees, behind the mask">
+<img src="masked/astryx-assemble+45.gif" width="210" alt="The same assembly with the word standing at 45 degrees, behind the mask">
 
 The word stands at 45°, which also makes it bigger: on the diagonal it has the
 panel's diagonal to fill, so it comes out 76×14 and the letters gain a fifth in
@@ -37,7 +39,7 @@ python3 retime.py -q -t 5 ../config/gifs/astryx-assemble+45.gif
 ## astryx-assemble-45.gif
 
 <img src="../config/gifs/astryx-assemble-45.gif" width="192" alt="The same assembly tilted 45 degrees the other way">
-<img src="masked/astryx-assemble-45.gif" width="192" alt="The same assembly tilted 45 degrees the other way, behind the mask">
+<img src="masked/astryx-assemble-45.gif" width="210" alt="The same assembly tilted 45 degrees the other way, behind the mask">
 
 The mirror of the one above, tilted the other way. The two cut together well
 back to back.
@@ -51,7 +53,7 @@ python3 retime.py -q -t 5 ../config/gifs/astryx-assemble-45.gif
 ## astryx-assemble.gif
 
 <img src="../config/gifs/astryx-assemble.gif" width="192" alt="Letters flying in from the edges to form the horizontal wordmark">
-<img src="masked/astryx-assemble.gif" width="192" alt="Letters flying in from the edges to form the horizontal wordmark, behind the mask">
+<img src="masked/astryx-assemble.gif" width="210" alt="Letters flying in from the edges to form the horizontal wordmark, behind the mask">
 
 Flat: the word lies across the panel, 64×12, letters about 12 px tall.
 
@@ -64,7 +66,7 @@ python3 retime.py -q -t 5 ../config/gifs/astryx-assemble.gif
 ## astryx-inout.gif
 
 <img src="../config/gifs/astryx-inout.gif" width="192" alt="The logo mark thinning away to nothing and growing back">
-<img src="masked/astryx-inout.gif" width="192" alt="The logo mark thinning away to nothing and growing back, behind the mask">
+<img src="masked/astryx-inout.gif" width="210" alt="The logo mark thinning away to nothing and growing back, behind the mask">
 
 The mark is held, then its outline steps inward: it thins, comes apart into its
 four lobes, and they dwindle to nothing — then the same run plays backwards and
@@ -82,7 +84,7 @@ python3 retime.py -q -t 5 ../config/gifs/astryx-inout.gif
 ## astryx-word-c.gif
 
 <img src="../config/gifs/astryx-word-c.gif" width="192" alt="The wordmark on a drum whose axis runs diagonally, foreshortening towards two corners">
-<img src="masked/astryx-word-c.gif" width="192" alt="The wordmark on a drum whose axis runs diagonally, foreshortening towards two corners, behind the mask">
+<img src="masked/astryx-word-c.gif" width="210" alt="The wordmark on a drum whose axis runs diagonally, foreshortening towards two corners, behind the mask">
 
 The same word on the surface of a drum turning towards you, with the drum's axis
 turned 45° as well: the surface now angles away towards the top-left and
@@ -100,7 +102,7 @@ python3 retime.py -q -t 10 ../config/gifs/astryx-word-c.gif
 ## astryx-word.gif
 
 <img src="../config/gifs/astryx-word.gif" width="192" alt="The Astryx wordmark crossing the panel diagonally, from bottom-right to top-left">
-<img src="masked/astryx-word.gif" width="192" alt="The Astryx wordmark crossing the panel diagonally, from bottom-right to top-left, behind the mask">
+<img src="masked/astryx-word.gif" width="210" alt="The Astryx wordmark crossing the panel diagonally, from bottom-right to top-left, behind the mask">
 
 The wordmark crosses the panel on the diagonal: it enters at the bottom-right
 corner, passes through the middle, and leaves at the top-left before starting
