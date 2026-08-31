@@ -69,6 +69,9 @@ something else. Do not vendor WLED code into this repo.
   the `$(GAPFILE)` recipe is there because the render is black-on-white, and it
   is what puts the `1`s on the logo. Verified on the panel — earlier notes
   claiming the firmware inverts this are wrong (see `README.md`).
+- `docs/gif-preview.md` shows every GIF in `config/gifs/` with its frame
+  count, duration, preset number and rebuild command. Hand-written, so it
+  needs updating when the set of GIFs changes.
 - `docs/SETUP.md` is the manual path: every panel setting as the field it is in
   WLED's UI, annotated with whether a build flag, `cfg.json`, or nothing at all
   restores it. Gamma, transition time, the UI preferences and the gap file are

@@ -27,6 +27,7 @@ astryx-panel/                  # this repo
 │   └── out/                   # intermediates (git-ignored)
 ├── WLED/                      # upstream WLED checkout (git-ignored, separate repo)
 │   └── platformio_override.ini -> ../config/platformio_override.ini
+├── docs/gif-preview.md        # every GIF in config/gifs/, shown and described
 ├── docs/SETUP.md              # the same settings as WLED UI fields, for setting a board up by hand
 ├── README.md
 └── CLAUDE.md                  # context for Claude Code sessions
@@ -178,6 +179,9 @@ whenever GIFs are added or removed.
 GIFs and other panel images that are generated rather than downloaded come
 from the scripts in `gfx/`, described below, which write their output into
 `config/gifs/`. Re-run `bin/gen-presets.sh` afterwards so the presets match.
+
+`docs/gif-preview.md` shows what each of them looks like, with its frame count,
+duration and the command that rebuilds it.
 
 ## Panel artwork
 
